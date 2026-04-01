@@ -113,7 +113,6 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     if (newIndex < 0 || newIndex >= questions.length) return;
     const updated = [...questions];
     [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
-    // Update order_index for both
     await Promise.all([
       supabase.from('form_questions').update({ order_index: newIndex }).eq('id', updated[newIndex].id),
       supabase.from('form_questions').update({ order_index: index }).eq('id', updated[index].id),
@@ -124,13 +123,13 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
+        <Button variant="ghost" size="sm" onClick={onBack} className="hover:bg-primary/10 hover:text-primary">
           <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar
         </Button>
-        <h2 className="text-xl font-semibold">Formulário — {client.name}</h2>
+        <h2 className="text-xl font-semibold text-gradient-cyan">Formulário — {client.name}</h2>
       </div>
 
-      <Button onClick={() => { resetForm(); setModalOpen(true); }}>
+      <Button onClick={() => { resetForm(); setModalOpen(true); }} className="font-semibold">
         <Plus className="mr-2 h-4 w-4" /> Adicionar Pergunta
       </Button>
 
@@ -139,30 +138,30 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : questions.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-lg border border-primary/10 bg-card p-12 text-center">
           <p className="text-muted-foreground">Nenhuma pergunta cadastrada.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {questions.map((q, i) => (
-            <div key={q.id} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
+            <div key={q.id} className="flex items-start gap-3 rounded-lg border border-primary/15 bg-card p-4 transition-all glow-cyan-hover">
               <div className="flex flex-col gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveQuestion(i, 'up')} disabled={i === 0}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10 hover:text-primary" onClick={() => moveQuestion(i, 'up')} disabled={i === 0}>
                   <ChevronUp className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveQuestion(i, 'down')} disabled={i === questions.length - 1}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10 hover:text-primary" onClick={() => moveQuestion(i, 'down')} disabled={i === questions.length - 1}>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex-1 space-y-1">
-                <p className="font-medium">{q.question}</p>
+                <p className="font-medium text-foreground">{q.question}</p>
                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                   <span>{typeLabels[q.type]}</span>
                   {q.required && <span className="text-primary">• Obrigatório</span>}
                   {q.options && <span>• Opções: {q.options.join(', ')}</span>}
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteQuestion(q.id)}>
+              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => deleteQuestion(q.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -171,20 +170,20 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="border-primary/20 bg-popover">
           <DialogHeader>
             <DialogTitle>Nova Pergunta</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Pergunta</Label>
-              <Input value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} placeholder="Digite a pergunta" />
+              <Input value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} placeholder="Digite a pergunta" className="bg-secondary border-primary/20" />
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={newType} onValueChange={(v) => setNewType(v as FormQuestion['type'])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-secondary border-primary/20"><SelectValue /></SelectTrigger>
+                <SelectContent className="border-primary/20 bg-popover">
                   <SelectItem value="text">Texto curto</SelectItem>
                   <SelectItem value="textarea">Texto longo</SelectItem>
                   <SelectItem value="multiple_choice">Múltipla escolha</SelectItem>
@@ -205,15 +204,16 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                         setNewOptions(updated);
                       }}
                       placeholder={`Opção ${i + 1}`}
+                      className="bg-secondary border-primary/20"
                     />
                     {newOptions.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))}>
+                      <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))} className="hover:bg-destructive/10 hover:text-destructive">
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, ''])}>
+                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, ''])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar opção
                 </Button>
               </div>
@@ -222,7 +222,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
               <Switch checked={newRequired} onCheckedChange={setNewRequired} />
               <Label>Obrigatório</Label>
             </div>
-            <Button onClick={handleAddQuestion} disabled={saving} className="w-full">
+            <Button onClick={handleAddQuestion} disabled={saving} className="w-full font-semibold">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Salvar Pergunta
             </Button>

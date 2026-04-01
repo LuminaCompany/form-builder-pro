@@ -54,7 +54,6 @@ const OnboardingPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required
     const missing = questions.filter(q => q.required && !answers[q.question]?.trim());
     if (missing.length > 0) {
       toast({
@@ -77,7 +76,6 @@ const OnboardingPage = () => {
       return;
     }
 
-    // Try to send notification (non-blocking)
     try {
       await supabase.functions.invoke('send-notification', {
         body: {
@@ -86,7 +84,7 @@ const OnboardingPage = () => {
         },
       });
     } catch {
-      // Silently fail — notification will be configured later
+      // Silently fail
     }
 
     setSubmitted(true);
@@ -95,18 +93,18 @@ const OnboardingPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="particles-bg flex min-h-screen items-center justify-center">
+        <Loader2 className="relative z-10 h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="text-center space-y-4">
+      <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+        <div className="relative z-10 text-center space-y-4 animate-fade-in-up">
           <AlertCircle className="mx-auto h-16 w-16 text-destructive" />
-          <h1 className="text-2xl font-bold">Formulário não encontrado</h1>
+          <h1 className="text-2xl font-bold text-foreground">Formulário não encontrado</h1>
           <p className="text-muted-foreground">O link que você acessou não corresponde a nenhum formulário.</p>
         </div>
       </div>
@@ -115,28 +113,30 @@ const OnboardingPage = () => {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <CheckCircle2 className="mx-auto h-16 w-16 text-success" />
-          <h1 className="text-2xl font-bold">Obrigado!</h1>
-          <p className="text-muted-foreground">Suas respostas foram enviadas com sucesso.</p>
+      <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+        <div className="relative z-10 text-center space-y-4 animate-fade-in-up">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-success/30 bg-success/10">
+            <CheckCircle2 className="h-10 w-10 text-success" />
+          </div>
+          <h1 className="text-3xl font-bold text-gradient-cyan">Obrigado!</h1>
+          <p className="text-muted-foreground text-lg">Suas respostas foram enviadas com sucesso.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-lg space-y-8">
+    <div className="particles-bg flex min-h-screen items-center justify-center p-4 py-12">
+      <div className="relative z-10 w-full max-w-lg space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">Onboarding</h1>
-          <p className="text-muted-foreground">{client?.name}</p>
+          <h1 className="text-3xl font-bold text-gradient-cyan">Onboarding</h1>
+          <p className="text-muted-foreground text-lg">{client?.name}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-primary/15 bg-card p-6 sm:p-8 glow-cyan">
           {questions.map((q) => (
             <div key={q.id} className="space-y-2">
-              <Label>
+              <Label className="text-foreground">
                 {q.question}
                 {q.required && <span className="text-destructive ml-1">*</span>}
               </Label>
@@ -146,6 +146,7 @@ const OnboardingPage = () => {
                   value={answers[q.question] || ''}
                   onChange={(e) => setAnswer(q.question, e.target.value)}
                   placeholder="Sua resposta"
+                  className="bg-secondary border-primary/20"
                 />
               )}
 
@@ -155,6 +156,7 @@ const OnboardingPage = () => {
                   onChange={(e) => setAnswer(q.question, e.target.value)}
                   placeholder="Sua resposta"
                   rows={4}
+                  className="bg-secondary border-primary/20"
                 />
               )}
 
@@ -163,10 +165,10 @@ const OnboardingPage = () => {
                   {q.options.map((opt) => (
                     <label
                       key={opt}
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
                         answers[q.question] === opt
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-primary bg-primary/10 glow-cyan'
+                          : 'border-primary/15 hover:border-primary/40 bg-secondary'
                       }`}
                     >
                       <input
@@ -177,12 +179,12 @@ const OnboardingPage = () => {
                         onChange={() => setAnswer(q.question, opt)}
                         className="sr-only"
                       />
-                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                         answers[q.question] === opt ? 'border-primary' : 'border-muted-foreground'
                       }`}>
                         {answers[q.question] === opt && <div className="h-2 w-2 rounded-full bg-primary" />}
                       </div>
-                      <span className="text-sm">{opt}</span>
+                      <span className="text-sm text-foreground">{opt}</span>
                     </label>
                   ))}
                 </div>
@@ -191,15 +193,18 @@ const OnboardingPage = () => {
               {q.type === 'yes_no' && (
                 <div className="flex gap-3">
                   {['Sim', 'Não'].map((opt) => (
-                    <Button
+                    <button
                       key={opt}
                       type="button"
-                      variant={answers[q.question] === opt ? 'default' : 'outline'}
-                      className="flex-1"
+                      className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
+                        answers[q.question] === opt
+                          ? 'border-primary bg-primary text-primary-foreground glow-cyan'
+                          : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
+                      }`}
                       onClick={() => setAnswer(q.question, opt)}
                     >
                       {opt}
-                    </Button>
+                    </button>
                   ))}
                 </div>
               )}
@@ -207,14 +212,14 @@ const OnboardingPage = () => {
           ))}
 
           {questions.length > 0 && (
-            <Button type="submit" className="w-full h-12" disabled={submitting}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            <Button type="submit" className="w-full h-12 font-bold text-lg text-primary-foreground hover:shadow-[0_0_25px_rgba(0,229,255,0.3)] transition-shadow" disabled={submitting}>
+              {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
               Enviar Respostas
             </Button>
           )}
 
           {questions.length === 0 && (
-            <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <div className="rounded-lg border border-primary/10 bg-secondary p-8 text-center">
               <p className="text-muted-foreground">Este formulário ainda não possui perguntas.</p>
             </div>
           )}

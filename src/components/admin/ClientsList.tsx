@@ -84,9 +84,9 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   };
 
   const statusColors: Record<string, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    active: 'bg-green-500/20 text-green-400 border-green-500/30',
-    completed: 'bg-primary/20 text-primary border-primary/30',
+    pending: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+    active: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+    completed: 'bg-primary/15 text-primary border-primary/25',
   };
 
   const statusLabels: Record<string, string> = {
@@ -98,25 +98,25 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Clientes</h2>
+        <h2 className="text-xl font-semibold text-gradient-cyan">Clientes</h2>
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Novo Cliente</Button>
+            <Button className="font-semibold"><Plus className="mr-2 h-4 w-4" /> Novo Cliente</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="border-primary/20 bg-popover">
             <DialogHeader>
               <DialogTitle>Novo Cliente</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Nome</Label>
-                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Nome do cliente" />
+                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Nome do cliente" className="bg-secondary border-primary/20" />
               </div>
               <div className="space-y-2">
                 <Label>Slug</Label>
-                <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug-do-cliente" />
+                <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug-do-cliente" className="bg-secondary border-primary/20" />
               </div>
-              <Button onClick={handleCreate} disabled={creating} className="w-full">
+              <Button onClick={handleCreate} disabled={creating} className="w-full font-semibold">
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Criar Cliente
               </Button>
@@ -130,16 +130,16 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : clients.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-lg border border-primary/10 bg-card p-12 text-center">
           <p className="text-muted-foreground">Nenhum cliente cadastrado ainda.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {clients.map((client) => (
-            <div key={client.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div key={client.id} className="flex flex-col gap-3 rounded-lg border border-primary/15 bg-card p-4 transition-all glow-cyan-hover sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{client.name}</span>
+                  <span className="font-medium text-foreground">{client.name}</span>
                   <Badge variant="outline" className={statusColors[client.status]}>
                     {statusLabels[client.status] || client.status}
                   </Badge>
@@ -147,13 +147,13 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
                 <p className="text-sm text-muted-foreground">/{client.slug} · {new Date(client.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => copyLink(client.slug)}>
+                <Button variant="outline" size="sm" onClick={() => copyLink(client.slug)} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar Link
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => onEditForm(client)}>
+                <Button variant="outline" size="sm" onClick={() => onEditForm(client)} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar Formulário
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => onViewResponses(client)}>
+                <Button variant="outline" size="sm" onClick={() => onViewResponses(client)} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Eye className="mr-1.5 h-3.5 w-3.5" /> Ver Respostas
                 </Button>
               </div>
