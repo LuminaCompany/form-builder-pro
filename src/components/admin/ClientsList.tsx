@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Copy, Edit, Eye, Loader2 } from 'lucide-react';
+import { Plus, Copy, Edit, Eye, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types/onboarding';
@@ -35,6 +45,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -75,6 +87,20 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       fetchClients();
     }
     setCreating(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase.from('clients').delete().eq('id', deleteTarget.id);
+    if (error) {
+      toast({ title: 'Erro ao excluir cliente', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Cliente excluído com sucesso' });
+      fetchClients();
+    }
+    setDeleting(false);
+    setDeleteTarget(null);
   };
 
   const copyLink = (clientSlug: string) => {
@@ -156,11 +182,34 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
                 <Button variant="outline" size="sm" onClick={() => onViewResponses(client)} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Eye className="mr-1.5 h-3.5 w-3.5" /> Ver Respostas
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setDeleteTarget(client)} className="border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="border-primary/20 bg-popover">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir o cliente <strong className="text-foreground">{deleteTarget?.name}</strong>? Esta ação também removerá todas as perguntas e respostas vinculadas e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-primary/25 hover:bg-primary/10 hover:text-primary" disabled={deleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

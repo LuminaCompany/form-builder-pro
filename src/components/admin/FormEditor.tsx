@@ -41,6 +41,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   const [newQuestion, setNewQuestion] = useState('');
   const [newType, setNewType] = useState<FormQuestion['type']>('text');
   const [newRequired, setNewRequired] = useState(true);
+  const [newAllowOther, setNewAllowOther] = useState(false);
   const [newOptions, setNewOptions] = useState<string[]>(['']);
   const { toast } = useToast();
 
@@ -78,6 +79,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       type: newType,
       options: filteredOptions,
       required: newRequired,
+      allow_other: newType === 'multiple_choice' ? newAllowOther : false,
       order_index: questions.length,
     });
     if (error) {
@@ -95,6 +97,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     setNewQuestion('');
     setNewType('text');
     setNewRequired(true);
+    setNewAllowOther(false);
     setNewOptions(['']);
   };
 
@@ -158,6 +161,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                   <span>{typeLabels[q.type]}</span>
                   {q.required && <span className="text-primary">• Obrigatório</span>}
+                  {q.allow_other && <span className="text-primary">• Outro</span>}
                   {q.options && <span>• Opções: {q.options.join(', ')}</span>}
                 </div>
               </div>
@@ -181,7 +185,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={newType} onValueChange={(v) => setNewType(v as FormQuestion['type'])}>
+              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice') setNewAllowOther(false); }}>
                 <SelectTrigger className="bg-secondary border-primary/20"><SelectValue /></SelectTrigger>
                 <SelectContent className="border-primary/20 bg-popover">
                   <SelectItem value="text">Texto curto</SelectItem>
@@ -218,9 +222,17 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 </Button>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Switch checked={newRequired} onCheckedChange={setNewRequired} />
-              <Label>Obrigatório</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch checked={newRequired} onCheckedChange={setNewRequired} />
+                <Label>Obrigatório</Label>
+              </div>
+              {newType === 'multiple_choice' && (
+                <div className="flex items-center gap-2">
+                  <Switch checked={newAllowOther} onCheckedChange={setNewAllowOther} />
+                  <Label>Outro?</Label>
+                </div>
+              )}
             </div>
             <Button onClick={handleAddQuestion} disabled={saving} className="w-full font-semibold">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

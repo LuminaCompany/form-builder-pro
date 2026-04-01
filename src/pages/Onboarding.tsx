@@ -14,6 +14,7 @@ const OnboardingPage = () => {
   const [client, setClient] = useState<Client | null>(null);
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [otherTexts, setOtherTexts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -51,10 +52,27 @@ const OnboardingPage = () => {
     setAnswers((prev) => ({ ...prev, [question]: value }));
   };
 
+  const setOtherText = (question: string, value: string) => {
+    setOtherTexts((prev) => ({ ...prev, [question]: value }));
+  };
+
+  const getFinalAnswer = (q: FormQuestion): string => {
+    const raw = answers[q.question] || '';
+    if (q.type === 'multiple_choice' && q.allow_other && raw === '__other__') {
+      const text = otherTexts[q.question]?.trim() || '';
+      return text ? `Outro: ${text}` : '';
+    }
+    return raw;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const missing = questions.filter(q => q.required && !answers[q.question]?.trim());
+    const missing = questions.filter(q => {
+      if (!q.required) return false;
+      const final = getFinalAnswer(q);
+      return !final.trim();
+    });
     if (missing.length > 0) {
       toast({
         title: 'Campos obrigatórios',
@@ -65,9 +83,16 @@ const OnboardingPage = () => {
     }
 
     setSubmitting(true);
+
+    const finalAnswers: Record<string, string> = {};
+    questions.forEach(q => {
+      const val = getFinalAnswer(q);
+      if (val) finalAnswers[q.question] = val;
+    });
+
     const { error } = await supabase.from('form_responses').insert({
       client_id: client!.id,
-      answers,
+      answers: finalAnswers,
     });
 
     if (error) {
@@ -80,7 +105,7 @@ const OnboardingPage = () => {
       await supabase.functions.invoke('send-notification', {
         body: {
           clientName: client!.name,
-          answers,
+          answers: finalAnswers,
         },
       });
     } catch {
@@ -187,6 +212,40 @@ const OnboardingPage = () => {
                       <span className="text-sm text-foreground">{opt}</span>
                     </label>
                   ))}
+                  {q.allow_other && (
+                    <>
+                      <label
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
+                          answers[q.question] === '__other__'
+                            ? 'border-primary bg-primary/10 glow-cyan'
+                            : 'border-primary/15 hover:border-primary/40 bg-secondary'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value="__other__"
+                          checked={answers[q.question] === '__other__'}
+                          onChange={() => setAnswer(q.question, '__other__')}
+                          className="sr-only"
+                        />
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          answers[q.question] === '__other__' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {answers[q.question] === '__other__' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="text-sm text-foreground">Outro</span>
+                      </label>
+                      {answers[q.question] === '__other__' && (
+                        <Input
+                          value={otherTexts[q.question] || ''}
+                          onChange={(e) => setOtherText(q.question, e.target.value)}
+                          placeholder="Descreva aqui..."
+                          className="bg-secondary border-primary/20 ml-7"
+                        />
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

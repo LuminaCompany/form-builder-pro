@@ -13,6 +13,7 @@ export interface FormQuestion {
   type: 'text' | 'textarea' | 'multiple_choice' | 'yes_no';
   options: string[] | null;
   required: boolean;
+  allow_other: boolean;
   order_index: number;
   created_at: string;
 }
