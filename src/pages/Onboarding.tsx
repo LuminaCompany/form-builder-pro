@@ -36,6 +36,22 @@ const OnboardingPage = () => {
       }
       setClient(clientData);
 
+      // Set dynamic tab title
+      document.title = clientData.tab_title || 'Formulário de Briefing';
+
+      // Set dynamic favicon
+      const existingFavicon = document.querySelector("link[rel='icon']");
+      if (clientData.favicon_url) {
+        if (existingFavicon) {
+          (existingFavicon as HTMLLinkElement).href = clientData.favicon_url;
+        } else {
+          const link = document.createElement('link');
+          link.rel = 'icon';
+          link.href = clientData.favicon_url;
+          document.head.appendChild(link);
+        }
+      }
+
       const { data: questionsData } = await supabase
         .from('form_questions')
         .select('*')
@@ -118,7 +134,7 @@ const OnboardingPage = () => {
 
   if (loading) {
     return (
-      <div className="particles-bg flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="relative z-10 h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -126,7 +142,7 @@ const OnboardingPage = () => {
 
   if (notFound) {
     return (
-      <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <div className="relative z-10 text-center space-y-4 animate-fade-in-up">
           <AlertCircle className="mx-auto h-16 w-16 text-destructive" />
           <h1 className="text-2xl font-bold text-foreground">Formulário não encontrado</h1>
@@ -138,7 +154,7 @@ const OnboardingPage = () => {
 
   if (submitted) {
     return (
-      <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <div className="relative z-10 text-center space-y-4 animate-fade-in-up">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-success/30 bg-success/10">
             <CheckCircle2 className="h-10 w-10 text-success" />
@@ -151,7 +167,7 @@ const OnboardingPage = () => {
   }
 
   return (
-    <div className="particles-bg flex min-h-screen items-center justify-center p-4 py-12">
+    <div className="flex min-h-screen items-center justify-center p-4 py-12">
       <div className="relative z-10 w-full max-w-lg space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gradient-cyan">Onboarding</h1>

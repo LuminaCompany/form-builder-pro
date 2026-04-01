@@ -44,6 +44,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [tabTitle, setTabTitle] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -76,7 +78,13 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from('clients').insert({ name, slug, status: 'pending' });
+    const { error } = await supabase.from('clients').insert({
+      name,
+      slug,
+      status: 'pending',
+      tab_title: tabTitle.trim() || null,
+      favicon_url: faviconUrl.trim() || null,
+    });
     if (error) {
       toast({ title: 'Erro ao criar cliente', description: error.message, variant: 'destructive' });
     } else {
@@ -84,6 +92,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       setModalOpen(false);
       setName('');
       setSlug('');
+      setTabTitle('');
+      setFaviconUrl('');
       fetchClients();
     }
     setCreating(false);
@@ -141,6 +151,15 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
               <div className="space-y-2">
                 <Label>Slug</Label>
                 <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug-do-cliente" className="bg-secondary border-primary/20" />
+              </div>
+              <div className="space-y-2">
+                <Label>Nome da aba (título da página)</Label>
+                <Input value={tabTitle} onChange={(e) => setTabTitle(e.target.value)} placeholder="ex: Briefing – Empresa X" className="bg-secondary border-primary/20" />
+              </div>
+              <div className="space-y-2">
+                <Label>Favicon (URL da imagem)</Label>
+                <Input value={faviconUrl} onChange={(e) => setFaviconUrl(e.target.value)} placeholder="Cole a URL de uma imagem .png ou .ico (32x32)" className="bg-secondary border-primary/20" />
+                <p className="text-xs text-muted-foreground">Use uma imagem quadrada de 32x32px. Sugestão: converta em <a href="https://favicon.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">favicon.io</a></p>
               </div>
               <Button onClick={handleCreate} disabled={creating} className="w-full font-semibold">
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

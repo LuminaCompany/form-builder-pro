@@ -3,6 +3,8 @@ export interface Client {
   name: string;
   slug: string;
   status: 'pending' | 'active' | 'completed';
+  tab_title?: string;
+  favicon_url?: string;
   created_at: string;
 }
 

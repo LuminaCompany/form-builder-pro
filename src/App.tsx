@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import StarBackground from "@/components/StarBackground";
 import Admin from "./pages/Admin";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -12,6 +13,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <StarBackground />
       <Toaster />
       <Sonner />
       <BrowserRouter>
