@@ -92,6 +92,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       setModalOpen(false);
       setName('');
       setSlug('');
+      setTabTitle('');
+      setFaviconUrl('');
       fetchClients();
     }
     setCreating(false);
