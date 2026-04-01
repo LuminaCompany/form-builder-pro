@@ -44,6 +44,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [tabTitle, setTabTitle] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
