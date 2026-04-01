@@ -44,7 +44,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     const keys = Array.from(allKeys);
     const header = ['ID', 'Data', ...keys].join(',');
     const rows = responses.map(r => {
-      const date = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '';
+      const date = r.submitted_at ? new Date(r.submitted_at).toLocaleString('pt-BR') : '';
       const values = keys.map(k => `"${(r.answers?.[k] || '').replace(/"/g, '""')}"`);
       return [r.id, `"${date}"`, ...values].join(',');
     });
