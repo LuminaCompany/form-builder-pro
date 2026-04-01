@@ -169,6 +169,12 @@ const OnboardingPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center p-4 py-12">
       <div className="relative z-10 w-full max-w-lg space-y-8">
+        {client?.lumina_branding && (
+          <div className="text-center">
+            <span className="text-2xl font-bold tracking-wider text-primary">LUMINA</span>
+          </div>
+        )}
+
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gradient-cyan">Onboarding</h1>
           <p className="text-muted-foreground text-lg">{client?.name}</p>
@@ -322,6 +328,13 @@ const OnboardingPage = () => {
             </div>
           )}
         </form>
+
+        {client?.lumina_branding && (
+          <div className="border-t border-primary/10 pt-6 text-center space-y-1">
+            <p className="text-xs text-muted-foreground">Powered by</p>
+            <p className="text-sm font-bold text-primary">Lumina Company</p>
+          </div>
+        )}
       </div>
     </div>
   );

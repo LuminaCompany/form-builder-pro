@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Copy, Edit, Eye, Trash2, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +47,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [slug, setSlug] = useState('');
   const [tabTitle, setTabTitle] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
+  const [luminaBranding, setLuminaBranding] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -84,6 +86,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       status: 'pending',
       tab_title: tabTitle.trim() || null,
       favicon_url: faviconUrl.trim() || null,
+      lumina_branding: luminaBranding,
     });
     if (error) {
       toast({ title: 'Erro ao criar cliente', description: error.message, variant: 'destructive' });
@@ -94,6 +97,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       setSlug('');
       setTabTitle('');
       setFaviconUrl('');
+      setLuminaBranding(false);
       fetchClients();
     }
     setCreating(false);
@@ -160,6 +164,10 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
                 <Label>Favicon (URL da imagem)</Label>
                 <Input value={faviconUrl} onChange={(e) => setFaviconUrl(e.target.value)} placeholder="Cole a URL de uma imagem .png ou .ico (32x32)" className="bg-secondary border-primary/20" />
                 <p className="text-xs text-muted-foreground">Use uma imagem quadrada de 32x32px. Sugestão: converta em <a href="https://favicon.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">favicon.io</a></p>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="lumina-branding">Branding Lumina</Label>
+                <Switch id="lumina-branding" checked={luminaBranding} onCheckedChange={setLuminaBranding} />
               </div>
               <Button onClick={handleCreate} disabled={creating} className="w-full font-semibold">
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
