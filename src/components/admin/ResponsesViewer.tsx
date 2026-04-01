@@ -89,7 +89,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
                 className="flex w-full items-center justify-between p-4 text-left hover:bg-primary/5 transition-colors"
               >
                 <span className="text-sm text-foreground">
-                  Enviado em {new Date(r.created_at).toLocaleString('pt-BR')}
+                  Resposta #{r.id.slice(0, 8)}
                 </span>
                 {expandedId === r.id ? (
                   <ChevronDown className="h-4 w-4 text-primary" />
