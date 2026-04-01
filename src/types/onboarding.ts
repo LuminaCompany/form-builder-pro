@@ -22,5 +22,5 @@ export interface FormResponse {
   id: string;
   client_id: string;
   answers: Record<string, string>;
-  created_at: string;
+  created_at?: string;
 }
