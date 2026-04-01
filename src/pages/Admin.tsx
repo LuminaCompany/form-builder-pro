@@ -25,16 +25,16 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
+    <div className="particles-bg min-h-screen">
+      <header className="sticky top-0 z-10 border-b border-primary/15 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-bold text-primary">Lumina Admin</h1>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
+          <h1 className="text-lg font-extrabold tracking-wider text-gradient-cyan">LUMINA</h1>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30 text-foreground hover:bg-primary/10 hover:text-primary">
             <LogOut className="mr-1.5 h-4 w-4" /> Sair
           </Button>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
         {view.type === 'clients' && (
           <ClientsList
             onEditForm={(c) => setView({ type: 'form', client: c })}

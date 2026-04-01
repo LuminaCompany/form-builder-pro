@@ -63,12 +63,12 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
+          <Button variant="ghost" size="sm" onClick={onBack} className="hover:bg-primary/10 hover:text-primary">
             <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar
           </Button>
-          <h2 className="text-xl font-semibold">Respostas — {client.name}</h2>
+          <h2 className="text-xl font-semibold text-gradient-cyan">Respostas — {client.name}</h2>
         </div>
-        <Button variant="outline" onClick={exportCSV} disabled={responses.length === 0}>
+        <Button variant="outline" onClick={exportCSV} disabled={responses.length === 0} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
           <Download className="mr-2 h-4 w-4" /> Exportar CSV
         </Button>
       </div>
@@ -78,28 +78,28 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : responses.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <div className="rounded-lg border border-primary/10 bg-card p-12 text-center">
           <p className="text-muted-foreground">Nenhuma resposta recebida ainda.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {responses.map((r) => (
-            <div key={r.id} className="rounded-lg border border-border bg-card overflow-hidden">
+            <div key={r.id} className="rounded-lg border border-primary/15 bg-card overflow-hidden transition-all glow-cyan-hover">
               <button
                 onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                className="flex w-full items-center justify-between p-4 text-left hover:bg-secondary/50 transition-colors"
+                className="flex w-full items-center justify-between p-4 text-left hover:bg-primary/5 transition-colors"
               >
-                <span className="text-sm">
+                <span className="text-sm text-foreground">
                   Enviado em {new Date(r.created_at).toLocaleString('pt-BR')}
                 </span>
                 {expandedId === r.id ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-primary" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
               {expandedId === r.id && (
-                <div className="border-t border-border p-4 space-y-3">
+                <div className="border-t border-primary/10 p-4 space-y-3">
                   {Object.entries(r.answers || {}).map(([question, answer]) => (
                     <div key={question} className="space-y-1">
                       <p className="text-sm font-medium text-primary">{question}</p>

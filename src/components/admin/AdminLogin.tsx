@@ -31,14 +31,14 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+      <div className="relative z-10 w-full max-w-md space-y-8 rounded-2xl border border-primary/15 bg-card p-8 glow-cyan animate-fade-in-up">
         <div className="flex flex-col items-center space-y-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20">
-            <Lock className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-extrabold tracking-wider text-gradient-cyan">LUMINA</h1>
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+            <Lock className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Digite a senha para acessar</p>
+          <p className="text-muted-foreground">Digite a senha para acessar o painel</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
@@ -46,9 +46,9 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-12"
+            className="h-12 bg-secondary border-primary/20 focus:border-primary"
           />
-          <Button type="submit" className="w-full h-12" disabled={loading}>
+          <Button type="submit" className="w-full h-12 font-semibold text-primary-foreground" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
