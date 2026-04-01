@@ -78,7 +78,13 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from('clients').insert({ name, slug, status: 'pending' });
+    const { error } = await supabase.from('clients').insert({
+      name,
+      slug,
+      status: 'pending',
+      tab_title: tabTitle.trim() || null,
+      favicon_url: faviconUrl.trim() || null,
+    });
     if (error) {
       toast({ title: 'Erro ao criar cliente', description: error.message, variant: 'destructive' });
     } else {
