@@ -47,6 +47,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [slug, setSlug] = useState('');
   const [tabTitle, setTabTitle] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
+  const [luminaBranding, setLuminaBranding] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
