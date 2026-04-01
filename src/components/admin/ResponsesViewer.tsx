@@ -91,9 +91,9 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm text-foreground">Resposta #{r.id.slice(0, 8)}</span>
-                  {r.created_at && (
+                  {r.submitted_at && (
                     <span className="text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString('pt-BR')}
+                      {new Date(r.submitted_at).toLocaleString('pt-BR')}
                     </span>
                   )}
                 </div>
