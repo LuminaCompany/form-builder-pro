@@ -36,6 +36,22 @@ const OnboardingPage = () => {
       }
       setClient(clientData);
 
+      // Set dynamic tab title
+      document.title = clientData.tab_title || 'Formulário de Briefing';
+
+      // Set dynamic favicon
+      const existingFavicon = document.querySelector("link[rel='icon']");
+      if (clientData.favicon_url) {
+        if (existingFavicon) {
+          (existingFavicon as HTMLLinkElement).href = clientData.favicon_url;
+        } else {
+          const link = document.createElement('link');
+          link.rel = 'icon';
+          link.href = clientData.favicon_url;
+          document.head.appendChild(link);
+        }
+      }
+
       const { data: questionsData } = await supabase
         .from('form_questions')
         .select('*')
