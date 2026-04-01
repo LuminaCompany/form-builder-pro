@@ -23,7 +23,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
         .from('form_responses')
         .select('*')
         .eq('client_id', client.id)
-        .order('id', { ascending: false });
+        .order('created_at', { ascending: false });
       if (error) {
         toast({ title: 'Erro ao carregar respostas', description: error.message, variant: 'destructive' });
       } else {
