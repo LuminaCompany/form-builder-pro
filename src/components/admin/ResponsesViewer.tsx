@@ -23,7 +23,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
         .from('form_responses')
         .select('*')
         .eq('client_id', client.id)
-        .order('created_at', { ascending: false });
+        .order('submitted_at', { ascending: false });
       if (error) {
         toast({ title: 'Erro ao carregar respostas', description: error.message, variant: 'destructive' });
       } else {
@@ -44,7 +44,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     const keys = Array.from(allKeys);
     const header = ['ID', 'Data', ...keys].join(',');
     const rows = responses.map(r => {
-      const date = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '';
+      const date = r.submitted_at ? new Date(r.submitted_at).toLocaleString('pt-BR') : '';
       const values = keys.map(k => `"${(r.answers?.[k] || '').replace(/"/g, '""')}"`);
       return [r.id, `"${date}"`, ...values].join(',');
     });
@@ -91,9 +91,9 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm text-foreground">Resposta #{r.id.slice(0, 8)}</span>
-                  {r.created_at && (
+                  {r.submitted_at && (
                     <span className="text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString('pt-BR')}
+                      {new Date(r.submitted_at).toLocaleString('pt-BR')}
                     </span>
                   )}
                 </div>
