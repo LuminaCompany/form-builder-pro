@@ -79,7 +79,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       type: newType,
       options: filteredOptions,
       required: newRequired,
-      allow_other: newType === 'multiple_choice' ? newAllowOther : false,
+      allow_other: (newType === 'multiple_choice' || newType === 'yes_no') ? newAllowOther : false,
       order_index: questions.length,
     });
     if (error) {
