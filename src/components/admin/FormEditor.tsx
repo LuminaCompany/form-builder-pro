@@ -227,7 +227,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 <Switch checked={newRequired} onCheckedChange={setNewRequired} />
                 <Label>Obrigatório</Label>
               </div>
-              {newType === 'multiple_choice' && (
+              {(newType === 'multiple_choice' || newType === 'yes_no') && (
                 <div className="flex items-center gap-2">
                   <Switch checked={newAllowOther} onCheckedChange={setNewAllowOther} />
                   <Label>Outro?</Label>
