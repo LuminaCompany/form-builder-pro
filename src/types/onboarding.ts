@@ -5,6 +5,7 @@ export interface Client {
   status: 'pending' | 'active' | 'completed';
   tab_title?: string;
   favicon_url?: string;
+  lumina_branding?: boolean;
   created_at: string;
 }
 
