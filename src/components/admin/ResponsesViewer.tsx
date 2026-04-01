@@ -42,10 +42,11 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     const allKeys = new Set<string>();
     responses.forEach(r => Object.keys(r.answers || {}).forEach(k => allKeys.add(k)));
     const keys = Array.from(allKeys);
-    const header = ['ID', ...keys].join(',');
+    const header = ['ID', 'Data', ...keys].join(',');
     const rows = responses.map(r => {
+      const date = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '';
       const values = keys.map(k => `"${(r.answers?.[k] || '').replace(/"/g, '""')}"`);
-      return [r.id, ...values].join(',');
+      return [r.id, `"${date}"`, ...values].join(',');
     });
     const csv = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
