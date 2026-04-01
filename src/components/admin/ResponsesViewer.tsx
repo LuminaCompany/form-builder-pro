@@ -23,7 +23,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
         .from('form_responses')
         .select('*')
         .eq('client_id', client.id)
-        .order('id', { ascending: false });
+        .order('created_at', { ascending: false });
       if (error) {
         toast({ title: 'Erro ao carregar respostas', description: error.message, variant: 'destructive' });
       } else {
@@ -42,10 +42,11 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     const allKeys = new Set<string>();
     responses.forEach(r => Object.keys(r.answers || {}).forEach(k => allKeys.add(k)));
     const keys = Array.from(allKeys);
-    const header = ['ID', ...keys].join(',');
+    const header = ['ID', 'Data', ...keys].join(',');
     const rows = responses.map(r => {
+      const date = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '';
       const values = keys.map(k => `"${(r.answers?.[k] || '').replace(/"/g, '""')}"`);
-      return [r.id, ...values].join(',');
+      return [r.id, `"${date}"`, ...values].join(',');
     });
     const csv = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -88,9 +89,14 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
                 onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
                 className="flex w-full items-center justify-between p-4 text-left hover:bg-primary/5 transition-colors"
               >
-                <span className="text-sm text-foreground">
-                  Resposta #{r.id.slice(0, 8)}
-                </span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm text-foreground">Resposta #{r.id.slice(0, 8)}</span>
+                  {r.created_at && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(r.created_at).toLocaleString('pt-BR')}
+                    </span>
+                  )}
+                </div>
                 {expandedId === r.id ? (
                   <ChevronDown className="h-4 w-4 text-primary" />
                 ) : (
