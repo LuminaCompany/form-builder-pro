@@ -31,7 +31,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
   };
 
   return (
-    <div className="particles-bg flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
       <div className="relative z-10 w-full max-w-md space-y-8 rounded-2xl border border-primary/15 bg-card p-8 glow-cyan animate-fade-in-up">
         <div className="flex flex-col items-center space-y-4">
           <h1 className="text-3xl font-extrabold tracking-wider text-gradient-cyan">LUMINA</h1>

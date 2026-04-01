@@ -25,7 +25,7 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="particles-bg min-h-screen">
+    <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b border-primary/15 bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <h1 className="text-lg font-extrabold tracking-wider text-gradient-cyan">LUMINA</h1>
