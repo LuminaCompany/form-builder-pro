@@ -165,6 +165,10 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
                 <Input value={faviconUrl} onChange={(e) => setFaviconUrl(e.target.value)} placeholder="Cole a URL de uma imagem .png ou .ico (32x32)" className="bg-secondary border-primary/20" />
                 <p className="text-xs text-muted-foreground">Use uma imagem quadrada de 32x32px. Sugestão: converta em <a href="https://favicon.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">favicon.io</a></p>
               </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="lumina-branding">Branding Lumina</Label>
+                <Switch id="lumina-branding" checked={luminaBranding} onCheckedChange={setLuminaBranding} />
+              </div>
               <Button onClick={handleCreate} disabled={creating} className="w-full font-semibold">
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Criar Cliente
