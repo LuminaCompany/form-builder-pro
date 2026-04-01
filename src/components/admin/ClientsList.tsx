@@ -1,0 +1,168 @@
+import { useState, useEffect } from 'react';
+import { Plus, Copy, Edit, Eye, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import type { Client } from '@/types/onboarding';
+
+interface ClientsListProps {
+  onEditForm: (client: Client) => void;
+  onViewResponses: (client: Client) => void;
+}
+
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
+
+  const fetchClients = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      toast({ title: 'Erro ao carregar clientes', description: error.message, variant: 'destructive' });
+    } else {
+      setClients(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchClients(); }, []);
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setSlug(slugify(value));
+  };
+
+  const handleCreate = async () => {
+    if (!name.trim() || !slug.trim()) {
+      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from('clients').insert({ name, slug, status: 'pending' });
+    if (error) {
+      toast({ title: 'Erro ao criar cliente', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Cliente criado com sucesso!' });
+      setModalOpen(false);
+      setName('');
+      setSlug('');
+      fetchClients();
+    }
+    setCreating(false);
+  };
+
+  const copyLink = (clientSlug: string) => {
+    const link = `${window.location.origin}/onboarding/${clientSlug}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: 'Link copiado!' });
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    active: 'bg-green-500/20 text-green-400 border-green-500/30',
+    completed: 'bg-primary/20 text-primary border-primary/30',
+  };
+
+  const statusLabels: Record<string, string> = {
+    pending: 'Pendente',
+    active: 'Ativo',
+    completed: 'Concluído',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Clientes</h2>
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="mr-2 h-4 w-4" /> Novo Cliente</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Novo Cliente</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Nome do cliente" />
+              </div>
+              <div className="space-y-2">
+                <Label>Slug</Label>
+                <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug-do-cliente" />
+              </div>
+              <Button onClick={handleCreate} disabled={creating} className="w-full">
+                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Criar Cliente
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : clients.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted-foreground">Nenhum cliente cadastrado ainda.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {clients.map((client) => (
+            <div key={client.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{client.name}</span>
+                  <Badge variant="outline" className={statusColors[client.status]}>
+                    {statusLabels[client.status] || client.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">/{client.slug} · {new Date(client.created_at).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => copyLink(client.slug)}>
+                  <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar Link
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onEditForm(client)}>
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar Formulário
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onViewResponses(client)}>
+                  <Eye className="mr-1.5 h-3.5 w-3.5" /> Ver Respostas
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ClientsList;
