@@ -97,6 +97,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       setSlug('');
       setTabTitle('');
       setFaviconUrl('');
+      setLuminaBranding(false);
       fetchClients();
     }
     setCreating(false);
