@@ -185,7 +185,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice') setNewAllowOther(false); }}>
+              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false); }}>
                 <SelectTrigger className="bg-secondary border-primary/20"><SelectValue /></SelectTrigger>
                 <SelectContent className="border-primary/20 bg-popover">
                   <SelectItem value="text">Texto curto</SelectItem>
