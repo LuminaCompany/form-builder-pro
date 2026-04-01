@@ -86,6 +86,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
       status: 'pending',
       tab_title: tabTitle.trim() || null,
       favicon_url: faviconUrl.trim() || null,
+      lumina_branding: luminaBranding,
     });
     if (error) {
       toast({ title: 'Erro ao criar cliente', description: error.message, variant: 'destructive' });
