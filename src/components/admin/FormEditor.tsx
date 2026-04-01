@@ -79,7 +79,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       type: newType,
       options: filteredOptions,
       required: newRequired,
-      allow_other: newType === 'multiple_choice' ? newAllowOther : false,
+      allow_other: (newType === 'multiple_choice' || newType === 'yes_no') ? newAllowOther : false,
       order_index: questions.length,
     });
     if (error) {
@@ -185,7 +185,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice') setNewAllowOther(false); }}>
+              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false); }}>
                 <SelectTrigger className="bg-secondary border-primary/20"><SelectValue /></SelectTrigger>
                 <SelectContent className="border-primary/20 bg-popover">
                   <SelectItem value="text">Texto curto</SelectItem>
@@ -227,7 +227,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 <Switch checked={newRequired} onCheckedChange={setNewRequired} />
                 <Label>Obrigatório</Label>
               </div>
-              {newType === 'multiple_choice' && (
+              {(newType === 'multiple_choice' || newType === 'yes_no') && (
                 <div className="flex items-center gap-2">
                   <Switch checked={newAllowOther} onCheckedChange={setNewAllowOther} />
                   <Label>Outro?</Label>

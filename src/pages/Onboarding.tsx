@@ -250,21 +250,44 @@ const OnboardingPage = () => {
               )}
 
               {q.type === 'yes_no' && (
-                <div className="flex gap-3">
-                  {['Sim', 'Não'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
-                        answers[q.question] === opt
-                          ? 'border-primary bg-primary text-primary-foreground glow-cyan'
-                          : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
-                      }`}
-                      onClick={() => setAnswer(q.question, opt)}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    {['Sim', 'Não'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
+                          answers[q.question] === opt
+                            ? 'border-primary bg-primary text-primary-foreground glow-cyan'
+                            : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
+                        }`}
+                        onClick={() => setAnswer(q.question, opt)}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                    {q.allow_other && (
+                      <button
+                        type="button"
+                        className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
+                          answers[q.question]?.startsWith('Outro:') || answers[q.question] === 'Outro'
+                            ? 'border-primary bg-primary text-primary-foreground glow-cyan'
+                            : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
+                        }`}
+                        onClick={() => setAnswer(q.question, 'Outro')}
+                      >
+                        Outro
+                      </button>
+                    )}
+                  </div>
+                  {q.allow_other && (answers[q.question] === 'Outro' || answers[q.question]?.startsWith('Outro:')) && (
+                    <Input
+                      placeholder="Descreva aqui..."
+                      value={answers[q.question]?.startsWith('Outro: ') ? answers[q.question].slice(7) : ''}
+                      onChange={(e) => setAnswer(q.question, e.target.value ? `Outro: ${e.target.value}` : 'Outro')}
+                      className="bg-secondary border-primary/20 focus:border-primary"
+                    />
+                  )}
                 </div>
               )}
             </div>
