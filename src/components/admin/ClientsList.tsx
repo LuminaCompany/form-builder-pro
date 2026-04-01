@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Copy, Edit, Eye, Trash2, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
