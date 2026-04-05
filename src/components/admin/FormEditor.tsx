@@ -328,27 +328,29 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
               <div className="space-y-2">
                 <Label>Pedir detalhes</Label>
                 {newOptions.map((opt, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg border border-primary/15 bg-secondary p-3">
-                    <span className="text-sm text-foreground font-medium">{opt.label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <Switch
-                        checked={opt.followUp}
-                        onCheckedChange={(v) => {
-                          updateOption(i, 'followUp', v);
-                          if (!v) updateOption(i, 'followUpQuestion', '');
-                        }}
-                      />
-                      <span className="text-xs text-muted-foreground">Detalhes</span>
+                  <div key={i}>
+                    <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-secondary p-3">
+                      <span className="text-sm text-foreground font-medium">{opt.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          checked={opt.followUp}
+                          onCheckedChange={(v) => {
+                            updateOption(i, 'followUp', v);
+                            if (!v) updateOption(i, 'followUpQuestion', '');
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">Detalhes</span>
+                      </div>
                     </div>
+                    {opt.followUp && (
+                      <Input
+                        value={opt.followUpQuestion || ''}
+                        onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
+                        placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
+                        className="bg-secondary border-primary/20 text-xs mt-1"
+                      />
+                    )}
                   </div>
-                  {opt.followUp && (
-                    <Input
-                      value={opt.followUpQuestion || ''}
-                      onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
-                      placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
-                      className="bg-secondary border-primary/20 text-xs mt-1"
-                    />
-                  )}
                 ))}
               </div>
             )}
