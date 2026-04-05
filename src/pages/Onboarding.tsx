@@ -170,7 +170,7 @@ const OnboardingPage = () => {
         <Input
           value={answers[`${q.id}_followup`] || ''}
           onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
-          placeholder="Descreva aqui..."
+          placeholder={selectedOpt.followUpQuestion || "Descreva aqui..."}
           className="bg-secondary border-primary/20 mt-2"
         />
       </div>
@@ -293,7 +293,7 @@ const OnboardingPage = () => {
                           <Input
                             value={answers[`${q.id}_followup`] || ''}
                             onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
-                            placeholder="Descreva aqui..."
+                            placeholder={opt.followUpQuestion || "Descreva aqui..."}
                             className="bg-secondary border-primary/20 mt-2 ml-7"
                           />
                         </div>

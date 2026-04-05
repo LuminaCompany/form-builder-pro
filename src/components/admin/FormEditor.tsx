@@ -44,7 +44,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   const [newType, setNewType] = useState<FormQuestion['type']>('text');
   const [newRequired, setNewRequired] = useState(true);
   const [newAllowOther, setNewAllowOther] = useState(false);
-  const [newOptions, setNewOptions] = useState<OptionItem[]>([{ label: '', followUp: false }]);
+  const [newOptions, setNewOptions] = useState<OptionItem[]>([{ label: '', followUp: false, followUpQuestion: '' }]);
   const { toast } = useToast();
 
   const fetchQuestions = async () => {
@@ -74,7 +74,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     setNewType('text');
     setNewRequired(true);
     setNewAllowOther(false);
-    setNewOptions([{ label: '', followUp: false }]);
+    setNewOptions([{ label: '', followUp: false, followUpQuestion: '' }]);
     setEditingQuestion(null);
   };
 
@@ -107,13 +107,13 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false);
     if (v === 'yes_no') {
       setNewOptions([
-        { label: 'Sim', followUp: false },
-        { label: 'Não', followUp: false },
+        { label: 'Sim', followUp: false, followUpQuestion: '' },
+        { label: 'Não', followUp: false, followUpQuestion: '' },
       ]);
     } else if (v === 'multiple_choice') {
       // Keep existing or reset
       if (newOptions.length === 0 || (newOptions.length === 2 && newOptions[0].label === 'Sim')) {
-        setNewOptions([{ label: '', followUp: false }]);
+        setNewOptions([{ label: '', followUp: false, followUpQuestion: '' }]);
       }
     }
   };
@@ -195,9 +195,9 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     fetchQuestions();
   };
 
-  const updateOption = (index: number, field: keyof OptionItem, value: any) => {
+  const updateOption = (index: number, fields: Partial<OptionItem>) => {
     const updated = [...newOptions];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], ...fields };
     setNewOptions(updated);
   };
 
@@ -289,17 +289,27 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                   <div key={i} className="flex items-center gap-2">
                     <Input
                       value={opt.label}
-                      onChange={(e) => updateOption(i, 'label', e.target.value)}
+                      onChange={(e) => updateOption(i, { label: e.target.value })}
                       placeholder={`Opção ${i + 1}`}
                       className="bg-secondary border-primary/20 flex-1"
                     />
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Switch
                         checked={opt.followUp}
-                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
+                        onCheckedChange={(v) => {
+                          updateOption(i, v ? { followUp: true } : { followUp: false, followUpQuestion: '' });
+                        }}
                       />
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Detalhes</span>
                     </div>
+                    {opt.followUp && (
+                      <Input
+                        value={opt.followUpQuestion || ''}
+                        onChange={(e) => updateOption(i, { followUpQuestion: e.target.value })}
+                        placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
+                        className="bg-secondary border-primary/20 flex-1 text-xs"
+                      />
+                    )}
                     {newOptions.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))} className="hover:bg-destructive/10 hover:text-destructive shrink-0">
                         <X className="h-4 w-4" />
@@ -307,7 +317,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     )}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, { label: '', followUp: false }])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
+                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, { label: '', followUp: false, followUpQuestion: '' }])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar opção
                 </Button>
               </div>
@@ -317,15 +327,27 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
               <div className="space-y-2">
                 <Label>Pedir detalhes</Label>
                 {newOptions.map((opt, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg border border-primary/15 bg-secondary p-3">
-                    <span className="text-sm text-foreground font-medium">{opt.label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <Switch
-                        checked={opt.followUp}
-                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
-                      />
-                      <span className="text-xs text-muted-foreground">Detalhes</span>
+                  <div key={i}>
+                    <div className="flex items-center justify-between rounded-lg border border-primary/15 bg-secondary p-3">
+                      <span className="text-sm text-foreground font-medium">{opt.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          checked={opt.followUp}
+                          onCheckedChange={(v) => {
+                            updateOption(i, v ? { followUp: true } : { followUp: false, followUpQuestion: '' });
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">Detalhes</span>
+                      </div>
                     </div>
+                    {opt.followUp && (
+                      <Input
+                        value={opt.followUpQuestion || ''}
+                        onChange={(e) => updateOption(i, { followUpQuestion: e.target.value })}
+                        placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
+                        className="bg-secondary border-primary/20 text-xs mt-1"
+                      />
+                    )}
                   </div>
                 ))}
               </div>
