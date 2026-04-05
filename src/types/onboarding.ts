@@ -12,6 +12,7 @@ export interface Client {
 export interface OptionItem {
   label: string;
   followUp: boolean;
+  followUpQuestion?: string;
 }
 
 export interface FormQuestion {
@@ -31,8 +32,8 @@ export function normalizeOptions(options: any): OptionItem[] | null {
   if (!options) return null;
   if (!Array.isArray(options)) return null;
   return options.map((opt: any) => {
-    if (typeof opt === 'string') return { label: opt, followUp: false };
-    return { label: opt.label || '', followUp: !!opt.followUp };
+    if (typeof opt === 'string') return { label: opt, followUp: false, followUpQuestion: '' };
+    return { label: opt.label || '', followUp: !!opt.followUp, followUpQuestion: opt.followUpQuestion || '' };
   });
 }
 

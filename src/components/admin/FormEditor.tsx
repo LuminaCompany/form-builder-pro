@@ -44,7 +44,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   const [newType, setNewType] = useState<FormQuestion['type']>('text');
   const [newRequired, setNewRequired] = useState(true);
   const [newAllowOther, setNewAllowOther] = useState(false);
-  const [newOptions, setNewOptions] = useState<OptionItem[]>([{ label: '', followUp: false }]);
+  const [newOptions, setNewOptions] = useState<OptionItem[]>([{ label: '', followUp: false, followUpQuestion: '' }]);
   const { toast } = useToast();
 
   const fetchQuestions = async () => {
@@ -74,7 +74,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     setNewType('text');
     setNewRequired(true);
     setNewAllowOther(false);
-    setNewOptions([{ label: '', followUp: false }]);
+    setNewOptions([{ label: '', followUp: false, followUpQuestion: '' }]);
     setEditingQuestion(null);
   };
 
@@ -107,13 +107,13 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false);
     if (v === 'yes_no') {
       setNewOptions([
-        { label: 'Sim', followUp: false },
-        { label: 'Não', followUp: false },
+        { label: 'Sim', followUp: false, followUpQuestion: '' },
+        { label: 'Não', followUp: false, followUpQuestion: '' },
       ]);
     } else if (v === 'multiple_choice') {
       // Keep existing or reset
       if (newOptions.length === 0 || (newOptions.length === 2 && newOptions[0].label === 'Sim')) {
-        setNewOptions([{ label: '', followUp: false }]);
+        setNewOptions([{ label: '', followUp: false, followUpQuestion: '' }]);
       }
     }
   };
