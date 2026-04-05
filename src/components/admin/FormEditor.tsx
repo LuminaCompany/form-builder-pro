@@ -297,8 +297,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                       <Switch
                         checked={opt.followUp}
                         onCheckedChange={(v) => {
-                          updateOption(i, { followUp: v });
-                          if (!v) updateOption(i, { followUpQuestion: '' });
+                          updateOption(i, v ? { followUp: true } : { followUp: false, followUpQuestion: '' });
                         }}
                       />
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Detalhes</span>
@@ -335,8 +334,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                         <Switch
                           checked={opt.followUp}
                           onCheckedChange={(v) => {
-                            updateOption(i, { followUp: v });
-                            if (!v) updateOption(i, { followUpQuestion: '' });
+                            updateOption(i, v ? { followUp: true } : { followUp: false, followUpQuestion: '' });
                           }}
                         />
                         <span className="text-xs text-muted-foreground">Detalhes</span>
