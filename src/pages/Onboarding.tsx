@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase, SUPABASE_PROJECT_URL } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import type { Client, FormQuestion } from '@/types/onboarding';
+import type { Client, FormQuestion, OptionItem } from '@/types/onboarding';
+import { normalizeOptions } from '@/types/onboarding';
 
 const OnboardingPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -36,10 +37,8 @@ const OnboardingPage = () => {
       }
       setClient(clientData);
 
-      // Set dynamic tab title
       document.title = clientData.tab_title || 'Formulário de Briefing';
 
-      // Set dynamic favicon
       const existingFavicon = document.querySelector("link[rel='icon']");
       if (clientData.favicon_url) {
         if (existingFavicon) {
@@ -58,18 +57,29 @@ const OnboardingPage = () => {
         .eq('client_id', clientData.id)
         .order('order_index', { ascending: true });
 
-      setQuestions(questionsData || []);
+      const normalized = (questionsData || []).map((q: any) => ({
+        ...q,
+        options: normalizeOptions(q.options),
+      }));
+      setQuestions(normalized);
       setLoading(false);
     };
     fetch();
   }, [slug]);
 
-  const setAnswer = (question: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [question]: value }));
+  const setAnswer = (key: string, value: string) => {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
   const setOtherText = (question: string, value: string) => {
     setOtherTexts((prev) => ({ ...prev, [question]: value }));
+  };
+
+  /** Check if the currently selected option for a question has followUp */
+  const getSelectedOption = (q: FormQuestion): OptionItem | undefined => {
+    const selected = answers[q.question];
+    if (!selected || !q.options) return undefined;
+    return q.options.find(o => o.label === selected);
   };
 
   const getFinalAnswer = (q: FormQuestion): string => {
@@ -84,15 +94,28 @@ const OnboardingPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const missing = questions.filter(q => {
-      if (!q.required) return false;
+    const missing: string[] = [];
+    questions.forEach(q => {
+      if (!q.required) return;
       const final = getFinalAnswer(q);
-      return !final.trim();
+      if (!final.trim()) {
+        missing.push(q.question);
+        return;
+      }
+      // If selected option has followUp, the followup field is also required
+      const selectedOpt = getSelectedOption(q);
+      if (selectedOpt?.followUp) {
+        const followUpVal = answers[`${q.id}_followup`]?.trim();
+        if (!followUpVal) {
+          missing.push(`${q.question} (detalhes)`);
+        }
+      }
     });
+
     if (missing.length > 0) {
       toast({
         title: 'Campos obrigatórios',
-        description: `Preencha: ${missing.map(q => q.question).join(', ')}`,
+        description: `Preencha: ${missing.join(', ')}`,
         variant: 'destructive',
       });
       return;
@@ -104,6 +127,11 @@ const OnboardingPage = () => {
     questions.forEach(q => {
       const val = getFinalAnswer(q);
       if (val) finalAnswers[q.question] = val;
+      // Include followup answers
+      const followUpVal = answers[`${q.id}_followup`]?.trim();
+      if (followUpVal) {
+        finalAnswers[`${q.question} (detalhes)`] = followUpVal;
+      }
     });
 
     const { error } = await supabase.from('form_responses').insert({
@@ -130,6 +158,23 @@ const OnboardingPage = () => {
 
     setSubmitted(true);
     setSubmitting(false);
+  };
+
+  /** Render the follow-up text field if the selected option has followUp: true */
+  const renderFollowUp = (q: FormQuestion) => {
+    const selectedOpt = getSelectedOption(q);
+    if (!selectedOpt?.followUp) return null;
+
+    return (
+      <div className="overflow-hidden transition-all duration-300 ease-in-out animate-fade-in-up">
+        <Input
+          value={answers[`${q.id}_followup`] || ''}
+          onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
+          placeholder="Descreva aqui..."
+          className="bg-secondary border-primary/20 mt-2"
+        />
+      </div>
+    );
   };
 
   if (loading) {
@@ -210,29 +255,50 @@ const OnboardingPage = () => {
               {q.type === 'multiple_choice' && q.options && (
                 <div className="space-y-2">
                   {q.options.map((opt) => (
-                    <label
-                      key={opt}
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
-                        answers[q.question] === opt
-                          ? 'border-primary bg-primary/10 glow-cyan'
-                          : 'border-primary/15 hover:border-primary/40 bg-secondary'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={q.id}
-                        value={opt}
-                        checked={answers[q.question] === opt}
-                        onChange={() => setAnswer(q.question, opt)}
-                        className="sr-only"
-                      />
-                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        answers[q.question] === opt ? 'border-primary' : 'border-muted-foreground'
-                      }`}>
-                        {answers[q.question] === opt && <div className="h-2 w-2 rounded-full bg-primary" />}
-                      </div>
-                      <span className="text-sm text-foreground">{opt}</span>
-                    </label>
+                    <div key={opt.label}>
+                      <label
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
+                          answers[q.question] === opt.label
+                            ? 'border-primary bg-primary/10 glow-cyan'
+                            : 'border-primary/15 hover:border-primary/40 bg-secondary'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={opt.label}
+                          checked={answers[q.question] === opt.label}
+                          onChange={() => {
+                            setAnswer(q.question, opt.label);
+                            // Clear followup if switching to non-followup option
+                            if (!opt.followUp) {
+                              setAnswers(prev => {
+                                const next = { ...prev };
+                                delete next[`${q.id}_followup`];
+                                return next;
+                              });
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          answers[q.question] === opt.label ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {answers[q.question] === opt.label && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="text-sm text-foreground">{opt.label}</span>
+                      </label>
+                      {answers[q.question] === opt.label && opt.followUp && (
+                        <div className="animate-fade-in-up">
+                          <Input
+                            value={answers[`${q.id}_followup`] || ''}
+                            onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
+                            placeholder="Descreva aqui..."
+                            className="bg-secondary border-primary/20 mt-2 ml-7"
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
                   {q.allow_other && (
                     <>
@@ -274,18 +340,27 @@ const OnboardingPage = () => {
               {q.type === 'yes_no' && (
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    {['Sim', 'Não'].map((opt) => (
+                    {(q.options || [{ label: 'Sim', followUp: false }, { label: 'Não', followUp: false }]).map((opt) => (
                       <button
-                        key={opt}
+                        key={opt.label}
                         type="button"
                         className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
-                          answers[q.question] === opt
+                          answers[q.question] === opt.label
                             ? 'border-primary bg-primary text-primary-foreground glow-cyan'
                             : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
                         }`}
-                        onClick={() => setAnswer(q.question, opt)}
+                        onClick={() => {
+                          setAnswer(q.question, opt.label);
+                          if (!opt.followUp) {
+                            setAnswers(prev => {
+                              const next = { ...prev };
+                              delete next[`${q.id}_followup`];
+                              return next;
+                            });
+                          }
+                        }}
                       >
-                        {opt}
+                        {opt.label}
                       </button>
                     ))}
                     {q.allow_other && (
@@ -302,6 +377,8 @@ const OnboardingPage = () => {
                       </button>
                     )}
                   </div>
+                  {/* Follow-up for yes_no */}
+                  {renderFollowUp(q)}
                   {q.allow_other && (answers[q.question] === 'Outro' || answers[q.question]?.startsWith('Outro:')) && (
                     <Input
                       placeholder="Descreva aqui..."
