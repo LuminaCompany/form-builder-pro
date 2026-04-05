@@ -195,9 +195,9 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     fetchQuestions();
   };
 
-  const updateOption = (index: number, field: keyof OptionItem, value: any) => {
+  const updateOption = (index: number, fields: Partial<OptionItem>) => {
     const updated = [...newOptions];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], ...fields };
     setNewOptions(updated);
   };
 
