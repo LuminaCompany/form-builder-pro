@@ -289,7 +289,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                   <div key={i} className="flex items-center gap-2">
                     <Input
                       value={opt.label}
-                      onChange={(e) => updateOption(i, 'label', e.target.value)}
+                      onChange={(e) => updateOption(i, { label: e.target.value })}
                       placeholder={`Opção ${i + 1}`}
                       className="bg-secondary border-primary/20 flex-1"
                     />
@@ -297,8 +297,8 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                       <Switch
                         checked={opt.followUp}
                         onCheckedChange={(v) => {
-                          updateOption(i, 'followUp', v);
-                          if (!v) updateOption(i, 'followUpQuestion', '');
+                          updateOption(i, { followUp: v });
+                          if (!v) updateOption(i, { followUpQuestion: '' });
                         }}
                       />
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Detalhes</span>
@@ -306,7 +306,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     {opt.followUp && (
                       <Input
                         value={opt.followUpQuestion || ''}
-                        onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
+                        onChange={(e) => updateOption(i, { followUpQuestion: e.target.value })}
                         placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
                         className="bg-secondary border-primary/20 flex-1 text-xs"
                       />
@@ -335,8 +335,8 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                         <Switch
                           checked={opt.followUp}
                           onCheckedChange={(v) => {
-                            updateOption(i, 'followUp', v);
-                            if (!v) updateOption(i, 'followUpQuestion', '');
+                            updateOption(i, { followUp: v });
+                            if (!v) updateOption(i, { followUpQuestion: '' });
                           }}
                         />
                         <span className="text-xs text-muted-foreground">Detalhes</span>
@@ -345,7 +345,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     {opt.followUp && (
                       <Input
                         value={opt.followUpQuestion || ''}
-                        onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
+                        onChange={(e) => updateOption(i, { followUpQuestion: e.target.value })}
                         placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
                         className="bg-secondary border-primary/20 text-xs mt-1"
                       />
