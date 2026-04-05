@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronUp, ChevronDown, ArrowLeft, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown, ArrowLeft, Loader2, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +38,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<FormQuestion | null>(null);
   const [newQuestion, setNewQuestion] = useState('');
   const [newType, setNewType] = useState<FormQuestion['type']>('text');
   const [newRequired, setNewRequired] = useState(true);
@@ -62,7 +63,31 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
 
   useEffect(() => { fetchQuestions(); }, [client.id]);
 
-  const handleAddQuestion = async () => {
+  const resetForm = () => {
+    setNewQuestion('');
+    setNewType('text');
+    setNewRequired(true);
+    setNewAllowOther(false);
+    setNewOptions(['']);
+    setEditingQuestion(null);
+  };
+
+  const openAddModal = () => {
+    resetForm();
+    setModalOpen(true);
+  };
+
+  const openEditModal = (q: FormQuestion) => {
+    setEditingQuestion(q);
+    setNewQuestion(q.question);
+    setNewType(q.type);
+    setNewRequired(q.required);
+    setNewAllowOther(q.allow_other);
+    setNewOptions(q.options && q.options.length > 0 ? [...q.options] : ['']);
+    setModalOpen(true);
+  };
+
+  const handleSaveQuestion = async () => {
     if (!newQuestion.trim()) {
       toast({ title: 'Digite a pergunta', variant: 'destructive' });
       return;
@@ -73,32 +98,41 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('form_questions').insert({
-      client_id: client.id,
+
+    const payload = {
       question: newQuestion,
       type: newType,
       options: filteredOptions,
       required: newRequired,
       allow_other: (newType === 'multiple_choice' || newType === 'yes_no') ? newAllowOther : false,
-      order_index: questions.length,
-    });
-    if (error) {
-      toast({ title: 'Erro ao adicionar pergunta', description: error.message, variant: 'destructive' });
+    };
+
+    if (editingQuestion) {
+      const { error } = await supabase.from('form_questions').update(payload).eq('id', editingQuestion.id);
+      if (error) {
+        toast({ title: 'Erro ao atualizar pergunta', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Pergunta atualizada!' });
+        setModalOpen(false);
+        resetForm();
+        fetchQuestions();
+      }
     } else {
-      toast({ title: 'Pergunta adicionada!' });
-      setModalOpen(false);
-      resetForm();
-      fetchQuestions();
+      const { error } = await supabase.from('form_questions').insert({
+        ...payload,
+        client_id: client.id,
+        order_index: questions.length,
+      });
+      if (error) {
+        toast({ title: 'Erro ao adicionar pergunta', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Pergunta adicionada!' });
+        setModalOpen(false);
+        resetForm();
+        fetchQuestions();
+      }
     }
     setSaving(false);
-  };
-
-  const resetForm = () => {
-    setNewQuestion('');
-    setNewType('text');
-    setNewRequired(true);
-    setNewAllowOther(false);
-    setNewOptions(['']);
   };
 
   const deleteQuestion = async (id: string) => {
@@ -132,7 +166,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
         <h2 className="text-xl font-semibold text-gradient-cyan">Formulário — {client.name}</h2>
       </div>
 
-      <Button onClick={() => { resetForm(); setModalOpen(true); }} className="font-semibold">
+      <Button onClick={openAddModal} className="font-semibold">
         <Plus className="mr-2 h-4 w-4" /> Adicionar Pergunta
       </Button>
 
@@ -156,7 +190,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-1 cursor-pointer" onClick={() => openEditModal(q)}>
                 <p className="font-medium text-foreground">{q.question}</p>
                 <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                   <span>{typeLabels[q.type]}</span>
@@ -165,6 +199,9 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                   {q.options && <span>• Opções: {q.options.join(', ')}</span>}
                 </div>
               </div>
+              <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary" onClick={() => openEditModal(q)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => deleteQuestion(q.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -173,10 +210,10 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
         </div>
       )}
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="border-primary/20 bg-popover">
           <DialogHeader>
-            <DialogTitle>Nova Pergunta</DialogTitle>
+            <DialogTitle>{editingQuestion ? 'Editar Pergunta' : 'Nova Pergunta'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -234,9 +271,9 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 </div>
               )}
             </div>
-            <Button onClick={handleAddQuestion} disabled={saving} className="w-full font-semibold">
+            <Button onClick={handleSaveQuestion} disabled={saving} className="w-full font-semibold">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Salvar Pergunta
+              {editingQuestion ? 'Atualizar Pergunta' : 'Salvar Pergunta'}
             </Button>
           </div>
         </DialogContent>
