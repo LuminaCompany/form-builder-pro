@@ -296,10 +296,21 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Switch
                         checked={opt.followUp}
-                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
+                        onCheckedChange={(v) => {
+                          updateOption(i, 'followUp', v);
+                          if (!v) updateOption(i, 'followUpQuestion', '');
+                        }}
                       />
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Detalhes</span>
                     </div>
+                    {opt.followUp && (
+                      <Input
+                        value={opt.followUpQuestion || ''}
+                        onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
+                        placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
+                        className="bg-secondary border-primary/20 flex-1 text-xs"
+                      />
+                    )}
                     {newOptions.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))} className="hover:bg-destructive/10 hover:text-destructive shrink-0">
                         <X className="h-4 w-4" />
@@ -307,7 +318,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     )}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, { label: '', followUp: false }])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
+                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, { label: '', followUp: false, followUpQuestion: '' }])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar opção
                 </Button>
               </div>
@@ -322,11 +333,22 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                     <div className="flex items-center gap-1.5">
                       <Switch
                         checked={opt.followUp}
-                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
+                        onCheckedChange={(v) => {
+                          updateOption(i, 'followUp', v);
+                          if (!v) updateOption(i, 'followUpQuestion', '');
+                        }}
                       />
                       <span className="text-xs text-muted-foreground">Detalhes</span>
                     </div>
                   </div>
+                  {opt.followUp && (
+                    <Input
+                      value={opt.followUpQuestion || ''}
+                      onChange={(e) => updateOption(i, 'followUpQuestion', e.target.value)}
+                      placeholder="Qual pergunta deve aparecer? Ex: Qual o nome da IA?"
+                      className="bg-secondary border-primary/20 text-xs mt-1"
+                    />
+                  )}
                 ))}
               </div>
             )}
