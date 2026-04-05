@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import type { Client, FormQuestion } from '@/types/onboarding';
+import type { Client, FormQuestion, OptionItem, normalizeOptions } from '@/types/onboarding';
+import { normalizeOptions as normalize } from '@/types/onboarding';
 
 interface FormEditorProps {
   client: Client;
@@ -43,7 +44,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
   const [newType, setNewType] = useState<FormQuestion['type']>('text');
   const [newRequired, setNewRequired] = useState(true);
   const [newAllowOther, setNewAllowOther] = useState(false);
-  const [newOptions, setNewOptions] = useState<string[]>(['']);
+  const [newOptions, setNewOptions] = useState<OptionItem[]>([{ label: '', followUp: false }]);
   const { toast } = useToast();
 
   const fetchQuestions = async () => {
@@ -56,7 +57,12 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     if (error) {
       toast({ title: 'Erro ao carregar perguntas', description: error.message, variant: 'destructive' });
     } else {
-      setQuestions(data || []);
+      // Normalize options from DB
+      const normalized = (data || []).map((q: any) => ({
+        ...q,
+        options: normalize(q.options),
+      }));
+      setQuestions(normalized);
     }
     setLoading(false);
   };
@@ -68,7 +74,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     setNewType('text');
     setNewRequired(true);
     setNewAllowOther(false);
-    setNewOptions(['']);
+    setNewOptions([{ label: '', followUp: false }]);
     setEditingQuestion(null);
   };
 
@@ -83,8 +89,33 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     setNewType(q.type);
     setNewRequired(q.required);
     setNewAllowOther(q.allow_other);
-    setNewOptions(q.options && q.options.length > 0 ? [...q.options] : ['']);
+    if (q.type === 'yes_no') {
+      // For yes_no, use stored options or default
+      const opts = q.options && q.options.length > 0 ? [...q.options] : [
+        { label: 'Sim', followUp: false },
+        { label: 'Não', followUp: false },
+      ];
+      setNewOptions(opts);
+    } else {
+      setNewOptions(q.options && q.options.length > 0 ? [...q.options] : [{ label: '', followUp: false }]);
+    }
     setModalOpen(true);
+  };
+
+  const handleTypeChange = (v: FormQuestion['type']) => {
+    setNewType(v);
+    if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false);
+    if (v === 'yes_no') {
+      setNewOptions([
+        { label: 'Sim', followUp: false },
+        { label: 'Não', followUp: false },
+      ]);
+    } else if (v === 'multiple_choice') {
+      // Keep existing or reset
+      if (newOptions.length === 0 || (newOptions.length === 2 && newOptions[0].label === 'Sim')) {
+        setNewOptions([{ label: '', followUp: false }]);
+      }
+    }
   };
 
   const handleSaveQuestion = async () => {
@@ -92,11 +123,18 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       toast({ title: 'Digite a pergunta', variant: 'destructive' });
       return;
     }
-    const filteredOptions = newType === 'multiple_choice' ? newOptions.filter(o => o.trim()) : null;
-    if (newType === 'multiple_choice' && (!filteredOptions || filteredOptions.length < 2)) {
-      toast({ title: 'Adicione pelo menos 2 opções', variant: 'destructive' });
-      return;
+
+    let filteredOptions: OptionItem[] | null = null;
+    if (newType === 'multiple_choice') {
+      filteredOptions = newOptions.filter(o => o.label.trim());
+      if (filteredOptions.length < 2) {
+        toast({ title: 'Adicione pelo menos 2 opções', variant: 'destructive' });
+        return;
+      }
+    } else if (newType === 'yes_no') {
+      filteredOptions = newOptions;
     }
+
     setSaving(true);
 
     const payload = {
@@ -157,6 +195,17 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
     fetchQuestions();
   };
 
+  const updateOption = (index: number, field: keyof OptionItem, value: any) => {
+    const updated = [...newOptions];
+    updated[index] = { ...updated[index], [field]: value };
+    setNewOptions(updated);
+  };
+
+  const getOptionLabels = (options: OptionItem[] | null) => {
+    if (!options) return '';
+    return options.map(o => o.label + (o.followUp ? ' (📝)' : '')).join(', ');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -196,7 +245,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                   <span>{typeLabels[q.type]}</span>
                   {q.required && <span className="text-primary">• Obrigatório</span>}
                   {q.allow_other && <span className="text-primary">• Outro</span>}
-                  {q.options && <span>• Opções: {q.options.join(', ')}</span>}
+                  {q.options && <span>• Opções: {getOptionLabels(q.options)}</span>}
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary" onClick={() => openEditModal(q)}>
@@ -211,7 +260,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
       )}
 
       <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="border-primary/20 bg-popover">
+        <DialogContent className="border-primary/20 bg-popover max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingQuestion ? 'Editar Pergunta' : 'Nova Pergunta'}</DialogTitle>
           </DialogHeader>
@@ -222,7 +271,7 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={newType} onValueChange={(v) => { setNewType(v as FormQuestion['type']); if (v !== 'multiple_choice' && v !== 'yes_no') setNewAllowOther(false); }}>
+              <Select value={newType} onValueChange={(v) => handleTypeChange(v as FormQuestion['type'])}>
                 <SelectTrigger className="bg-secondary border-primary/20"><SelectValue /></SelectTrigger>
                 <SelectContent className="border-primary/20 bg-popover">
                   <SelectItem value="text">Texto curto</SelectItem>
@@ -232,33 +281,56 @@ const FormEditor = ({ client, onBack }: FormEditorProps) => {
                 </SelectContent>
               </Select>
             </div>
+
             {newType === 'multiple_choice' && (
               <div className="space-y-2">
                 <Label>Opções</Label>
                 {newOptions.map((opt, i) => (
-                  <div key={i} className="flex gap-2">
+                  <div key={i} className="flex items-center gap-2">
                     <Input
-                      value={opt}
-                      onChange={(e) => {
-                        const updated = [...newOptions];
-                        updated[i] = e.target.value;
-                        setNewOptions(updated);
-                      }}
+                      value={opt.label}
+                      onChange={(e) => updateOption(i, 'label', e.target.value)}
                       placeholder={`Opção ${i + 1}`}
-                      className="bg-secondary border-primary/20"
+                      className="bg-secondary border-primary/20 flex-1"
                     />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Switch
+                        checked={opt.followUp}
+                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
+                      />
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">Detalhes</span>
+                    </div>
                     {newOptions.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))} className="hover:bg-destructive/10 hover:text-destructive">
+                      <Button variant="ghost" size="icon" onClick={() => setNewOptions(newOptions.filter((_, j) => j !== i))} className="hover:bg-destructive/10 hover:text-destructive shrink-0">
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, ''])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
+                <Button variant="outline" size="sm" onClick={() => setNewOptions([...newOptions, { label: '', followUp: false }])} className="border-primary/25 hover:bg-primary/10 hover:text-primary">
                   <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar opção
                 </Button>
               </div>
             )}
+
+            {newType === 'yes_no' && (
+              <div className="space-y-2">
+                <Label>Pedir detalhes</Label>
+                {newOptions.map((opt, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-primary/15 bg-secondary p-3">
+                    <span className="text-sm text-foreground font-medium">{opt.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        checked={opt.followUp}
+                        onCheckedChange={(v) => updateOption(i, 'followUp', v)}
+                      />
+                      <span className="text-xs text-muted-foreground">Detalhes</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={newRequired} onCheckedChange={setNewRequired} />

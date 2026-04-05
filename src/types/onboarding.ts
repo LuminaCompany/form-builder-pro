@@ -9,16 +9,31 @@ export interface Client {
   created_at: string;
 }
 
+export interface OptionItem {
+  label: string;
+  followUp: boolean;
+}
+
 export interface FormQuestion {
   id: string;
   client_id: string;
   question: string;
   type: 'text' | 'textarea' | 'multiple_choice' | 'yes_no';
-  options: string[] | null;
+  options: OptionItem[] | null;
   required: boolean;
   allow_other: boolean;
   order_index: number;
   created_at: string;
+}
+
+/** Normalize legacy string[] options to OptionItem[] */
+export function normalizeOptions(options: any): OptionItem[] | null {
+  if (!options) return null;
+  if (!Array.isArray(options)) return null;
+  return options.map((opt: any) => {
+    if (typeof opt === 'string') return { label: opt, followUp: false };
+    return { label: opt.label || '', followUp: !!opt.followUp };
+  });
 }
 
 export interface FormResponse {
