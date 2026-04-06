@@ -66,9 +66,10 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     toast({ title: 'CSV exportado!' });
   };
 
-  /** Parse a stored answer that might be a JSON array or plain string */
-  const parseAnswer = (raw: string | undefined): string[] => {
+  /** Parse a stored answer that might be a JSON array, string, or array */
+  const parseAnswer = (raw: string | string[] | undefined): string[] => {
     if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(String);
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
@@ -82,8 +83,8 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     return (
       <div className="border-t border-primary/10 p-4 space-y-5">
         {questions.map((q, idx) => {
-          const mainAnswer = ans[q.id];
-          const followUpAnswer = ans[`${q.id} (detalhes)`];
+          const mainAnswer = ans[q.id] ?? ans[q.question];
+          const followUpAnswer = ans[`${q.id}_followup`] ?? ans[`${q.question} (detalhes)`];
           const isMulti = q.type === 'multiple_choice' || q.type === 'yes_no';
           const values = isMulti ? parseAnswer(mainAnswer) : [];
 
@@ -102,7 +103,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
                 {idx + 1}. {q.question}
               </p>
 
-              {!mainAnswer ? (
+              {!mainAnswer || (Array.isArray(mainAnswer) && mainAnswer.length === 0) ? (
                 <p className="text-sm text-muted-foreground italic">Não respondido</p>
               ) : isMulti ? (
                 <div className="space-y-2">
