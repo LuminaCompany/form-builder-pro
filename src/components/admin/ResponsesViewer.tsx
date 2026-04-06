@@ -12,6 +12,60 @@ interface ResponsesViewerProps {
   onBack: () => void;
 }
 
+type AnswerValue = string | string[] | undefined;
+
+const normalizeAnswerMap = (raw: unknown): Record<string, AnswerValue> => {
+  if (!raw) return {};
+
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, AnswerValue>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, AnswerValue>)
+    : {};
+};
+
+const normalizeKey = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const isFollowUpKey = (key: string) => key.endsWith('_followup') || key.endsWith(' (detalhes)');
+
+const getAnswerValue = (
+  answers: Record<string, AnswerValue>,
+  normalizedAnswers: Map<string, AnswerValue>,
+  candidates: string[]
+): AnswerValue => {
+  for (const candidate of candidates) {
+    if (candidate in answers) return answers[candidate];
+  }
+
+  for (const candidate of candidates) {
+    const normalized = normalizedAnswers.get(normalizeKey(candidate));
+    if (normalized !== undefined) return normalized;
+  }
+
+  return undefined;
+};
+
+const isEmptyAnswer = (value: AnswerValue) => {
+  if (value == null) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return value.trim() === '';
+};
+
 const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
   const [responses, setResponses] = useState<FormResponse[]>([]);
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
@@ -31,7 +85,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
       } else {
         const normalized = (resResult.data || []).map(r => ({
           ...r,
-          answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {}),
+          answers: normalizeAnswerMap(r.answers),
         }));
         setResponses(normalized);
       }
@@ -67,24 +121,41 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
   };
 
   /** Parse a stored answer that might be a JSON array, string, or array */
-  const parseAnswer = (raw: string | string[] | undefined): string[] => {
+  const parseAnswer = (raw: AnswerValue): string[] => {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw.map(String);
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) return parsed.map(String);
+      if (parsed != null) return [String(parsed)];
     } catch { /* not JSON */ }
     return [raw];
   };
 
   const renderResponseBody = (r: FormResponse) => {
-    const ans = r.answers || {};
+    const ans = normalizeAnswerMap(r.answers);
+    const normalizedAnswers = new Map(Object.entries(ans).map(([key, value]) => [normalizeKey(key), value] as const));
+    const legacyMainEntries = Object.entries(ans).filter(([key]) => !isFollowUpKey(key));
+    const hasDirectQuestionMatch = questions.some((q) =>
+      getAnswerValue(ans, normalizedAnswers, [q.id, q.question]) !== undefined
+    );
+    const useLegacyOrderFallback = !hasDirectQuestionMatch && legacyMainEntries.length > 0;
 
     return (
       <div className="border-t border-primary/10 p-4 space-y-5">
         {questions.map((q, idx) => {
-          const mainAnswer = ans[q.id] ?? ans[q.question];
-          const followUpAnswer = ans[`${q.id}_followup`] ?? ans[`${q.question} (detalhes)`];
+          const legacyMainKey = useLegacyOrderFallback ? legacyMainEntries[idx]?.[0] : undefined;
+          const mainAnswer = getAnswerValue(ans, normalizedAnswers, [
+            q.id,
+            q.question,
+            ...(legacyMainKey ? [legacyMainKey] : []),
+          ]);
+          const followUpAnswer = getAnswerValue(ans, normalizedAnswers, [
+            `${q.id}_followup`,
+            `${q.id} (detalhes)`,
+            `${q.question} (detalhes)`,
+            ...(legacyMainKey ? [`${legacyMainKey}_followup`, `${legacyMainKey} (detalhes)`] : []),
+          ]);
           const isMulti = q.type === 'multiple_choice' || q.type === 'yes_no';
           const values = isMulti ? parseAnswer(mainAnswer) : [];
 
@@ -103,7 +174,7 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
                 {idx + 1}. {q.question}
               </p>
 
-              {!mainAnswer || (Array.isArray(mainAnswer) && mainAnswer.length === 0) ? (
+              {isEmptyAnswer(mainAnswer) ? (
                 <p className="text-sm text-muted-foreground italic">Não respondido</p>
               ) : isMulti ? (
                 <div className="space-y-2">
