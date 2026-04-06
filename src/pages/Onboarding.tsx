@@ -73,8 +73,8 @@ const OnboardingPage = () => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
-  const setOtherText = (question: string, value: string) => {
-    setOtherTexts((prev) => ({ ...prev, [question]: value }));
+  const setOtherText = (questionId: string, value: string) => {
+    setOtherTexts((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const isMultiType = (q: FormQuestion) => q.type === 'multiple_choice' || q.type === 'yes_no';
@@ -82,7 +82,7 @@ const OnboardingPage = () => {
   /** Toggle an option in multi-select */
   const toggleOption = (q: FormQuestion, label: string) => {
     setMultiAnswers(prev => {
-      const current = prev[q.question] || [];
+      const current = prev[q.id] || [];
       const isSelected = current.includes(label);
       const next = isSelected ? current.filter(l => l !== label) : [...current, label];
 
@@ -98,18 +98,18 @@ const OnboardingPage = () => {
         }
       }
 
-      return { ...prev, [q.question]: next };
+      return { ...prev, [q.id]: next };
     });
   };
 
   const isOptionSelected = (q: FormQuestion, label: string) => {
-    return (multiAnswers[q.question] || []).includes(label);
+    return (multiAnswers[q.id] || []).includes(label);
   };
 
   /** Get the last selected option with followUp for a multi-select question */
   const getActiveFollowUpOption = (q: FormQuestion): OptionItem | undefined => {
     if (!q.options) return undefined;
-    const selected = multiAnswers[q.question] || [];
+    const selected = multiAnswers[q.id] || [];
     // Find the last selected option that has followUp
     for (let i = selected.length - 1; i >= 0; i--) {
       const opt = q.options.find(o => o.label === selected[i] && o.followUp);
@@ -120,19 +120,19 @@ const OnboardingPage = () => {
 
   const getFinalAnswer = (q: FormQuestion): string => {
     if (isMultiType(q)) {
-      const selected = multiAnswers[q.question] || [];
+      const selected = multiAnswers[q.id] || [];
       const parts = [...selected];
       // Add "Outro" text if selected
       if (q.allow_other && selected.includes('__other__')) {
         const idx = parts.indexOf('__other__');
-        const text = otherTexts[q.question]?.trim() || '';
+        const text = otherTexts[q.id]?.trim() || '';
         parts[idx] = text ? `Outro: ${text}` : 'Outro';
       }
       return parts.length > 0 ? JSON.stringify(parts) : '';
     }
-    const raw = answers[q.question] || '';
+    const raw = answers[q.id] || '';
     if (q.type === 'multiple_choice' && q.allow_other && raw === '__other__') {
-      const text = otherTexts[q.question]?.trim() || '';
+      const text = otherTexts[q.id]?.trim() || '';
       return text ? `Outro: ${text}` : '';
     }
     return raw;
@@ -146,7 +146,7 @@ const OnboardingPage = () => {
       if (!q.required) return;
       const final = getFinalAnswer(q);
       if (!final.trim()) {
-        missing.push(q.question);
+          missing.push(q.question);
         return;
       }
       // If any selected option has followUp, the followup field is required
@@ -175,10 +175,10 @@ const OnboardingPage = () => {
     const finalAnswers: Record<string, string> = {};
     questions.forEach(q => {
       const val = getFinalAnswer(q);
-      if (val) finalAnswers[q.question] = val;
+      if (val) finalAnswers[q.id] = val;
       const followUpVal = answers[`${q.id}_followup`]?.trim();
       if (followUpVal) {
-        finalAnswers[`${q.question} (detalhes)`] = followUpVal;
+        finalAnswers[`${q.id}_followup`] = followUpVal;
       }
     });
 
@@ -283,8 +283,8 @@ const OnboardingPage = () => {
 
               {q.type === 'text' && (
                 <Input
-                  value={answers[q.question] || ''}
-                  onChange={(e) => setAnswer(q.question, e.target.value)}
+                  value={answers[q.id] || ''}
+                  onChange={(e) => setAnswer(q.id, e.target.value)}
                   placeholder="Sua resposta"
                   className="bg-secondary border-primary/20"
                 />
@@ -292,8 +292,8 @@ const OnboardingPage = () => {
 
               {q.type === 'textarea' && (
                 <Textarea
-                  value={answers[q.question] || ''}
-                  onChange={(e) => setAnswer(q.question, e.target.value)}
+                  value={answers[q.id] || ''}
+                  onChange={(e) => setAnswer(q.id, e.target.value)}
                   placeholder="Sua resposta"
                   rows={4}
                   className="bg-secondary border-primary/20"
@@ -353,8 +353,8 @@ const OnboardingPage = () => {
                       </button>
                       {isOptionSelected(q, '__other__') && (
                         <Input
-                          value={otherTexts[q.question] || ''}
-                          onChange={(e) => setOtherText(q.question, e.target.value)}
+                           value={otherTexts[q.id] || ''}
+                           onChange={(e) => setOtherText(q.id, e.target.value)}
                           placeholder="Descreva aqui..."
                           className="bg-secondary border-primary/20 ml-7"
                         />
@@ -403,8 +403,8 @@ const OnboardingPage = () => {
                   {q.allow_other && isOptionSelected(q, '__other__') && (
                     <Input
                       placeholder="Descreva aqui..."
-                      value={otherTexts[q.question] || ''}
-                      onChange={(e) => setOtherText(q.question, e.target.value)}
+                       value={otherTexts[q.id] || ''}
+                       onChange={(e) => setOtherText(q.id, e.target.value)}
                       className="bg-secondary border-primary/20 focus:border-primary"
                     />
                   )}
