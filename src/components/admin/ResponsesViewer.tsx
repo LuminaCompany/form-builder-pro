@@ -29,7 +29,11 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
       if (resResult.error) {
         toast({ title: 'Erro ao carregar respostas', description: resResult.error.message, variant: 'destructive' });
       } else {
-        setResponses(resResult.data || []);
+        const normalized = (resResult.data || []).map(r => ({
+          ...r,
+          answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {}),
+        }));
+        setResponses(normalized);
       }
       setQuestions((qResult.data || []).map(q => ({ ...q, options: normalizeOptions(q.options) })));
       setLoading(false);
