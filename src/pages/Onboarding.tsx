@@ -15,6 +15,8 @@ const OnboardingPage = () => {
   const [client, setClient] = useState<Client | null>(null);
   const [questions, setQuestions] = useState<FormQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  /** Stores multi-select answers as JSON arrays for select/boolean questions */
+  const [multiAnswers, setMultiAnswers] = useState<Record<string, string[]>>({});
   const [otherTexts, setOtherTexts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -75,14 +77,59 @@ const OnboardingPage = () => {
     setOtherTexts((prev) => ({ ...prev, [question]: value }));
   };
 
-  /** Check if the currently selected option for a question has followUp */
-  const getSelectedOption = (q: FormQuestion): OptionItem | undefined => {
-    const selected = answers[q.question];
-    if (!selected || !q.options) return undefined;
-    return q.options.find(o => o.label === selected);
+  const isMultiType = (q: FormQuestion) => q.type === 'multiple_choice' || q.type === 'yes_no';
+
+  /** Toggle an option in multi-select */
+  const toggleOption = (q: FormQuestion, label: string) => {
+    setMultiAnswers(prev => {
+      const current = prev[q.question] || [];
+      const isSelected = current.includes(label);
+      const next = isSelected ? current.filter(l => l !== label) : [...current, label];
+
+      // Clear followup if no selected option has followUp
+      if (q.options) {
+        const anyFollowUp = q.options.some(o => next.includes(o.label) && o.followUp);
+        if (!anyFollowUp) {
+          setAnswers(p => {
+            const n = { ...p };
+            delete n[`${q.id}_followup`];
+            return n;
+          });
+        }
+      }
+
+      return { ...prev, [q.question]: next };
+    });
+  };
+
+  const isOptionSelected = (q: FormQuestion, label: string) => {
+    return (multiAnswers[q.question] || []).includes(label);
+  };
+
+  /** Get the last selected option with followUp for a multi-select question */
+  const getActiveFollowUpOption = (q: FormQuestion): OptionItem | undefined => {
+    if (!q.options) return undefined;
+    const selected = multiAnswers[q.question] || [];
+    // Find the last selected option that has followUp
+    for (let i = selected.length - 1; i >= 0; i--) {
+      const opt = q.options.find(o => o.label === selected[i] && o.followUp);
+      if (opt) return opt;
+    }
+    return undefined;
   };
 
   const getFinalAnswer = (q: FormQuestion): string => {
+    if (isMultiType(q)) {
+      const selected = multiAnswers[q.question] || [];
+      const parts = [...selected];
+      // Add "Outro" text if selected
+      if (q.allow_other && selected.includes('__other__')) {
+        const idx = parts.indexOf('__other__');
+        const text = otherTexts[q.question]?.trim() || '';
+        parts[idx] = text ? `Outro: ${text}` : 'Outro';
+      }
+      return parts.length > 0 ? JSON.stringify(parts) : '';
+    }
     const raw = answers[q.question] || '';
     if (q.type === 'multiple_choice' && q.allow_other && raw === '__other__') {
       const text = otherTexts[q.question]?.trim() || '';
@@ -102,12 +149,14 @@ const OnboardingPage = () => {
         missing.push(q.question);
         return;
       }
-      // If selected option has followUp, the followup field is also required
-      const selectedOpt = getSelectedOption(q);
-      if (selectedOpt?.followUp) {
-        const followUpVal = answers[`${q.id}_followup`]?.trim();
-        if (!followUpVal) {
-          missing.push(`${q.question} (detalhes)`);
+      // If any selected option has followUp, the followup field is required
+      if (isMultiType(q)) {
+        const activeFollowUp = getActiveFollowUpOption(q);
+        if (activeFollowUp) {
+          const followUpVal = answers[`${q.id}_followup`]?.trim();
+          if (!followUpVal) {
+            missing.push(`${q.question} (detalhes)`);
+          }
         }
       }
     });
@@ -127,7 +176,6 @@ const OnboardingPage = () => {
     questions.forEach(q => {
       const val = getFinalAnswer(q);
       if (val) finalAnswers[q.question] = val;
-      // Include followup answers
       const followUpVal = answers[`${q.id}_followup`]?.trim();
       if (followUpVal) {
         finalAnswers[`${q.question} (detalhes)`] = followUpVal;
@@ -160,17 +208,17 @@ const OnboardingPage = () => {
     setSubmitting(false);
   };
 
-  /** Render the follow-up text field if the selected option has followUp: true */
-  const renderFollowUp = (q: FormQuestion) => {
-    const selectedOpt = getSelectedOption(q);
-    if (!selectedOpt?.followUp) return null;
+  /** Render the follow-up text field for multi-select questions */
+  const renderMultiFollowUp = (q: FormQuestion) => {
+    const activeOpt = getActiveFollowUpOption(q);
+    if (!activeOpt) return null;
 
     return (
       <div className="overflow-hidden transition-all duration-300 ease-in-out animate-fade-in-up">
         <Input
           value={answers[`${q.id}_followup`] || ''}
           onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
-          placeholder={selectedOpt.followUpQuestion || "Descreva aqui..."}
+          placeholder={activeOpt.followUpQuestion || "Descreva aqui..."}
           className="bg-secondary border-primary/20 mt-2"
         />
       </div>
@@ -254,77 +302,56 @@ const OnboardingPage = () => {
 
               {q.type === 'multiple_choice' && q.options && (
                 <div className="space-y-2">
-                  {q.options.map((opt) => (
-                    <div key={opt.label}>
-                      <label
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
-                          answers[q.question] === opt.label
-                            ? 'border-primary bg-primary/10 glow-cyan'
-                            : 'border-primary/15 hover:border-primary/40 bg-secondary'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={q.id}
-                          value={opt.label}
-                          checked={answers[q.question] === opt.label}
-                          onChange={() => {
-                            setAnswer(q.question, opt.label);
-                            // Clear followup if switching to non-followup option
-                            if (!opt.followUp) {
-                              setAnswers(prev => {
-                                const next = { ...prev };
-                                delete next[`${q.id}_followup`];
-                                return next;
-                              });
-                            }
-                          }}
-                          className="sr-only"
-                        />
-                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          answers[q.question] === opt.label ? 'border-primary' : 'border-muted-foreground'
-                        }`}>
-                          {answers[q.question] === opt.label && <div className="h-2 w-2 rounded-full bg-primary" />}
-                        </div>
-                        <span className="text-sm text-foreground">{opt.label}</span>
-                      </label>
-                      {answers[q.question] === opt.label && opt.followUp && (
-                        <div className="animate-fade-in-up">
-                          <Input
-                            value={answers[`${q.id}_followup`] || ''}
-                            onChange={(e) => setAnswer(`${q.id}_followup`, e.target.value)}
-                            placeholder={opt.followUpQuestion || "Descreva aqui..."}
-                            className="bg-secondary border-primary/20 mt-2 ml-7"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {q.options.map((opt) => {
+                    const selected = isOptionSelected(q, opt.label);
+                    return (
+                      <div key={opt.label}>
+                        <button
+                          type="button"
+                          className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all text-left ${
+                            selected
+                              ? 'border-primary bg-primary/10 glow-cyan'
+                              : 'border-primary/15 hover:border-primary/40 bg-secondary'
+                          }`}
+                          onClick={() => toggleOption(q, opt.label)}
+                        >
+                          <div className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+                            selected ? 'border-primary bg-primary' : 'border-muted-foreground'
+                          }`}>
+                            {selected && (
+                              <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm text-foreground">{opt.label}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                   {q.allow_other && (
                     <>
-                      <label
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${
-                          answers[q.question] === '__other__'
+                      <button
+                        type="button"
+                        className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all text-left ${
+                          isOptionSelected(q, '__other__')
                             ? 'border-primary bg-primary/10 glow-cyan'
                             : 'border-primary/15 hover:border-primary/40 bg-secondary'
                         }`}
+                        onClick={() => toggleOption(q, '__other__')}
                       >
-                        <input
-                          type="radio"
-                          name={q.id}
-                          value="__other__"
-                          checked={answers[q.question] === '__other__'}
-                          onChange={() => setAnswer(q.question, '__other__')}
-                          className="sr-only"
-                        />
-                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          answers[q.question] === '__other__' ? 'border-primary' : 'border-muted-foreground'
+                        <div className={`h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+                          isOptionSelected(q, '__other__') ? 'border-primary bg-primary' : 'border-muted-foreground'
                         }`}>
-                          {answers[q.question] === '__other__' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                          {isOptionSelected(q, '__other__') && (
+                            <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
                         </div>
                         <span className="text-sm text-foreground">Outro</span>
-                      </label>
-                      {answers[q.question] === '__other__' && (
+                      </button>
+                      {isOptionSelected(q, '__other__') && (
                         <Input
                           value={otherTexts[q.question] || ''}
                           onChange={(e) => setOtherText(q.question, e.target.value)}
@@ -334,56 +361,50 @@ const OnboardingPage = () => {
                       )}
                     </>
                   )}
+                  {renderMultiFollowUp(q)}
                 </div>
               )}
 
               {q.type === 'yes_no' && (
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    {(q.options || [{ label: 'Sim', followUp: false }, { label: 'Não', followUp: false }]).map((opt) => (
-                      <button
-                        key={opt.label}
-                        type="button"
-                        className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
-                          answers[q.question] === opt.label
-                            ? 'border-primary bg-primary text-primary-foreground glow-cyan'
-                            : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
-                        }`}
-                        onClick={() => {
-                          setAnswer(q.question, opt.label);
-                          if (!opt.followUp) {
-                            setAnswers(prev => {
-                              const next = { ...prev };
-                              delete next[`${q.id}_followup`];
-                              return next;
-                            });
-                          }
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                    {(q.options || [{ label: 'Sim', followUp: false }, { label: 'Não', followUp: false }]).map((opt) => {
+                      const selected = isOptionSelected(q, opt.label);
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
+                            selected
+                              ? 'border-primary bg-primary text-primary-foreground glow-cyan'
+                              : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
+                          }`}
+                          onClick={() => toggleOption(q, opt.label)}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                     {q.allow_other && (
                       <button
                         type="button"
                         className={`flex-1 rounded-lg border py-3 px-4 font-medium transition-all ${
-                          answers[q.question]?.startsWith('Outro:') || answers[q.question] === 'Outro'
+                          isOptionSelected(q, '__other__')
                             ? 'border-primary bg-primary text-primary-foreground glow-cyan'
                             : 'border-primary/20 bg-secondary text-foreground hover:border-primary/40'
                         }`}
-                        onClick={() => setAnswer(q.question, 'Outro')}
+                        onClick={() => toggleOption(q, '__other__')}
                       >
                         Outro
                       </button>
                     )}
                   </div>
-                  {/* Follow-up for yes_no */}
-                  {renderFollowUp(q)}
-                  {q.allow_other && (answers[q.question] === 'Outro' || answers[q.question]?.startsWith('Outro:')) && (
+                  {renderMultiFollowUp(q)}
+                  {q.allow_other && isOptionSelected(q, '__other__') && (
                     <Input
                       placeholder="Descreva aqui..."
-                      value={answers[q.question]?.startsWith('Outro: ') ? answers[q.question].slice(7) : ''}
-                      onChange={(e) => setAnswer(q.question, e.target.value ? `Outro: ${e.target.value}` : 'Outro')}
+                      value={otherTexts[q.question] || ''}
+                      onChange={(e) => setOtherText(q.question, e.target.value)}
                       className="bg-secondary border-primary/20 focus:border-primary"
                     />
                   )}
