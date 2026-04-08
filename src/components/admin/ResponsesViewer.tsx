@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Download, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, FileDown, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
@@ -132,6 +132,79 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
     return [raw];
   };
 
+  const exportSingleResponse = (r: FormResponse) => {
+    const ans = normalizeAnswerMap(r.answers);
+    const normalizedAnswers = new Map(Object.entries(ans).map(([key, value]) => [normalizeKey(key), value] as const));
+    const legacyMainEntries = Object.entries(ans).filter(([key]) => !isFollowUpKey(key));
+    const hasDirectQuestionMatch = questions.some((q) =>
+      getAnswerValue(ans, normalizedAnswers, [q.id, q.question]) !== undefined
+    );
+    const useLegacyOrderFallback = !hasDirectQuestionMatch && legacyMainEntries.length > 0;
+
+    const dateStr = r.submitted_at ? new Date(r.submitted_at).toLocaleString('pt-BR') : 'N/A';
+    const sep = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+    const lines: string[] = [
+      sep,
+      '',
+      `RESPOSTAS DE ONBOARDING — ${client.name.toUpperCase()}`,
+      '',
+      `Data de envio: ${dateStr}`,
+      '',
+      sep,
+      '',
+    ];
+
+    questions.forEach((q, idx) => {
+      const legacyMainKey = useLegacyOrderFallback ? legacyMainEntries[idx]?.[0] : undefined;
+      const mainAnswer = getAnswerValue(ans, normalizedAnswers, [
+        q.id, q.question, ...(legacyMainKey ? [legacyMainKey] : []),
+      ]);
+      const followUpAnswer = getAnswerValue(ans, normalizedAnswers, [
+        `${q.id}_followup`, `${q.id} (detalhes)`, `${q.question} (detalhes)`,
+        ...(legacyMainKey ? [`${legacyMainKey}_followup`, `${legacyMainKey} (detalhes)`] : []),
+      ]);
+      const isMulti = q.type === 'multiple_choice' || q.type === 'yes_no';
+      const values = isMulti ? parseAnswer(mainAnswer) : [];
+
+      lines.push(`${idx + 1}. ${q.question}`);
+      lines.push('');
+
+      if (isEmptyAnswer(mainAnswer)) {
+        lines.push('→ Não respondido');
+      } else if (isMulti) {
+        lines.push(`→ ${values.join(', ')}`);
+      } else {
+        lines.push(`→ ${mainAnswer}`);
+      }
+
+      if (followUpAnswer && !isEmptyAnswer(followUpAnswer)) {
+        let followUpLabel = '';
+        if (q.options) {
+          const opt = q.options.find(o => o.followUp && values.includes(o.label));
+          followUpLabel = opt?.followUpQuestion || '';
+        }
+        lines.push('');
+        lines.push(`   ↳ ${followUpLabel ? followUpLabel + ': ' : ''}${followUpAnswer}`);
+      }
+
+      lines.push('');
+    });
+
+    lines.push(sep);
+
+    const text = lines.join('\n');
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const dateFile = r.submitted_at
+      ? new Date(r.submitted_at).toLocaleDateString('pt-BR').replace(/\//g, '-')
+      : 'sem-data';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `onboarding-${client.slug}-${dateFile}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const renderResponseBody = (r: FormResponse) => {
     const ans = normalizeAnswerMap(r.answers);
     const normalizedAnswers = new Map(Object.entries(ans).map(([key, value]) => [normalizeKey(key), value] as const));
@@ -242,11 +315,21 @@ const ResponsesViewer = ({ client, onBack }: ResponsesViewerProps) => {
                     </span>
                   )}
                 </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); exportSingleResponse(r); }}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  >
+                    <FileDown className="mr-1 h-3.5 w-3.5" /> Exportar
+                  </Button>
                 {expandedId === r.id ? (
                   <ChevronDown className="h-4 w-4 text-primary" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
+                </div>
               </button>
               {expandedId === r.id && renderResponseBody(r)}
             </div>
