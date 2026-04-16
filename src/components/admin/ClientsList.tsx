@@ -52,6 +52,8 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -124,6 +126,106 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
     toast({ title: 'Link copiado!' });
   };
 
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const parsed = parseImportFile(text);
+
+      if (parsed.questions.length === 0) {
+        toast({ title: 'Nenhuma pergunta encontrada no arquivo', variant: 'destructive' });
+        return;
+      }
+
+      // Create unique slug
+      const baseSlug = slugify(parsed.clientName) || 'importado';
+      let candidateSlug = baseSlug;
+      let attempt = 1;
+      // Probe until slug is free
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data: existing } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('slug', candidateSlug)
+          .maybeSingle();
+        if (!existing) break;
+        attempt += 1;
+        candidateSlug = `${baseSlug}-${attempt}`;
+      }
+
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .insert({
+          name: parsed.clientName,
+          slug: candidateSlug,
+          status: 'completed',
+        })
+        .select()
+        .single();
+
+      if (clientError || !client) {
+        toast({ title: 'Erro ao criar cliente', description: clientError?.message, variant: 'destructive' });
+        return;
+      }
+
+      // Insert questions
+      const questionsPayload = parsed.questions.map((q, idx) => ({
+        client_id: client.id,
+        question: q.question,
+        type: q.type,
+        options: q.options,
+        required: false,
+        allow_other: q.allow_other,
+        order_index: idx,
+      }));
+
+      const { data: insertedQuestions, error: qError } = await supabase
+        .from('form_questions')
+        .insert(questionsPayload)
+        .select();
+
+      if (qError || !insertedQuestions) {
+        toast({ title: 'Erro ao criar perguntas', description: qError?.message, variant: 'destructive' });
+        return;
+      }
+
+      // Build answers map keyed by question.id
+      const answers: Record<string, any> = {};
+      insertedQuestions
+        .sort((a, b) => a.order_index - b.order_index)
+        .forEach((q, idx) => {
+          const parsedQ = parsed.questions[idx];
+          if (!parsedQ) return;
+          const val = parsedQ.answerValue;
+          if (val !== '' && !(Array.isArray(val) && val.length === 0)) {
+            answers[q.id] = val;
+          }
+          if (parsedQ.followUpAnswer) {
+            answers[`${q.id}_followup`] = parsedQ.followUpAnswer;
+          }
+        });
+
+      const { error: rError } = await supabase.from('form_responses').insert({
+        client_id: client.id,
+        answers,
+        submitted_at: new Date().toISOString(),
+      });
+
+      if (rError) {
+        toast({ title: 'Cliente criado, mas erro ao salvar resposta', description: rError.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Importação concluída!', description: `Cliente "${parsed.clientName}" criado com ${parsed.questions.length} perguntas.` });
+      }
+      fetchClients();
+    } catch (err: any) {
+      toast({ title: 'Erro ao importar arquivo', description: err.message, variant: 'destructive' });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const statusColors: Record<string, string> = {
     pending: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
     active: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
@@ -140,10 +242,30 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gradient-cyan">Clientes</h2>
-        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="font-semibold"><Plus className="mr-2 h-4 w-4" /> Novo Cliente</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImportFile(f);
+            }}
+          />
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="border-primary/25 hover:bg-primary/10 hover:text-primary"
+          >
+            {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            Importar Respostas
+          </Button>
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="font-semibold"><Plus className="mr-2 h-4 w-4" /> Novo Cliente</Button>
+            </DialogTrigger>
           <DialogContent className="border-primary/20 bg-popover">
             <DialogHeader>
               <DialogTitle>Novo Cliente</DialogTitle>
