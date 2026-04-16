@@ -299,6 +299,7 @@ const ClientsList = ({ onEditForm, onViewResponses }: ClientsListProps) => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
